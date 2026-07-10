@@ -8,16 +8,13 @@ type TopStatusBarProps = {
   isFallbackData: boolean;
   eventsCount: number;
   lastUpdated: string | null;
+  refreshIn: number;
   onRefresh: () => void;
   onOpenInfo: () => void;
 };
 
 export default function TopStatusBar({
-  localTime,
-  dataStatus,
-  isFallbackData,
-  onRefresh,
-  onOpenInfo,
+  localTime, dataStatus, isFallbackData, eventsCount, lastUpdated, refreshIn, onRefresh, onOpenInfo,
 }: TopStatusBarProps) {
   const isLive = dataStatus === "live";
 
@@ -61,7 +58,7 @@ export default function TopStatusBar({
           className="text-[11px] tracking-[0.15em] uppercase whitespace-nowrap font-medium"
           style={{ color: "var(--color-success)" }}
         >
-          LIVE EARTH SIGNAL
+          LIVE · {refreshIn}s
         </span>
       </div>
 

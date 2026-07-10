@@ -47,30 +47,43 @@ export default function Home() {
   // --- UI state ---
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<EventCategory | "all">("all");
+  const [refreshIn, setRefreshIn] = useState(60);
 
-  // --- Fetch events ---
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      setEventsLoading(true);
-      try {
-        const res = await fetch("/api/events");
-        if (!res.ok) throw new Error("Failed to load");
-        const data: EventsResponse = await res.json();
-        if (!cancelled) {
-          setEvents(data.events ?? []);
-          setDataSource(data.metadata?.source === "live" ? "live" : data.metadata?.source === "stale-cache" ? "live" : "fallback");
-          setLastUpdated(new Date().toISOString());
-        }
-      } catch (err) {
-        if (!cancelled) { setEventsError((err as Error).message); setDataSource("offline"); }
-      } finally {
-        if (!cancelled) setEventsLoading(false);
-      }
+  // --- Fetch events (extracted for reuse) ---
+  const fetchEvents = useCallback(async () => {
+    try {
+      const res = await fetch("/api/events");
+      if (!res.ok) throw new Error("Failed to load");
+      const data: EventsResponse = await res.json();
+      setEvents(data.events ?? []);
+      setDataSource(data.metadata?.source === "live" ? "live" : data.metadata?.source === "stale-cache" ? "live" : "fallback");
+      setLastUpdated(new Date().toISOString());
+      setEventsError(null);
+    } catch (err) {
+      setEventsError((err as Error).message);
+      setDataSource("offline");
     }
-    load();
-    return () => { cancelled = true; };
   }, []);
+
+  // --- Initial load ---
+  useEffect(() => {
+    setEventsLoading(true);
+    fetchEvents().finally(() => setEventsLoading(false));
+  }, [fetchEvents]);
+
+  // --- Auto-refresh every 60s ---
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchEvents();
+      setRefreshIn(60);
+    }, 60_000);
+
+    const countdown = setInterval(() => {
+      setRefreshIn((prev) => (prev <= 1 ? 60 : prev - 1));
+    }, 1000);
+
+    return () => { clearInterval(interval); clearInterval(countdown); };
+  }, [fetchEvents]);
 
   // --- Fetch location ---
   useEffect(() => {
@@ -118,6 +131,12 @@ export default function Home() {
 
   const localTime = useMemo(() => userLocation.timezone ? formatLocalTime(userLocation.timezone) : new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), [userLocation.timezone]);
 
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {} as Record<string, number>;
+    for (const e of events) { counts[e.category] = (counts[e.category] ?? 0) + 1; }
+    return counts;
+  }, [events]);
+
   // --- Handlers ---
   const handleSelectEvent = useCallback((e: EnvironmentalEvent | null) => setSelectedEventId(e?.id ?? null), []);
   const handleCloseEvent = useCallback(() => setSelectedEventId(null), []);
@@ -144,10 +163,10 @@ export default function Home() {
         onClose={handleCloseEvent}
       />
 
-      <TopStatusBar localTime={localTime} dataStatus={dataSource === "offline" ? "offline" : dataSource === "fallback" ? "stale" : "live"} isFallbackData={dataSource === "fallback"} eventsCount={events.length} lastUpdated={lastUpdated} onRefresh={handleRefresh} onOpenInfo={() => setShowInfo(!showInfo)} />
+      <TopStatusBar localTime={localTime} dataStatus={dataSource === "offline" ? "offline" : dataSource === "fallback" ? "stale" : "live"} isFallbackData={dataSource === "fallback"} eventsCount={events.length} lastUpdated={lastUpdated} refreshIn={refreshIn} onRefresh={handleRefresh} onOpenInfo={() => setShowInfo(!showInfo)} />
 
       <div className="panel-layer">
-        <LayerPanel selectedCategory={selectedCategory} onSelectCategory={handleSelectCategory} eventsCount={events.length} filteredCount={filteredEvents.length} hasFirmsKey={hasFirmsKey} />
+        <LayerPanel selectedCategory={selectedCategory} onSelectCategory={handleSelectCategory} eventsCount={events.length} filteredCount={filteredEvents.length} categoryCounts={categoryCounts} hasFirmsKey={hasFirmsKey} />
       </div>
 
       <div className="panel-layer">
