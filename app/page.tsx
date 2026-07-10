@@ -14,16 +14,15 @@ import MobileEventSheet from "@/components/layout/MobileEventSheet";
 import GlobeControls from "@/components/globe/GlobeControls";
 import GlobeLegend from "@/components/globe/GlobeLegend";
 import GlobeHoverTooltip from "@/components/globe/GlobeHoverTooltip";
-import GlobeLoadingState from "@/components/globe/GlobeLoadingState";
 import type { EnvironmentalGlobeRef } from "@/components/globe/GlobeImpl";
 
-// Dynamic import for the globe — no SSR
+// Dynamic import for the globe — no SSR, empty loading fallback avoids hydration mismatch
 const EnvironmentalGlobe = dynamic(
   () => import("@/components/globe/EnvironmentalGlobe"),
   {
     ssr: false,
-    loading: () => <GlobeLoadingState />,
-  },
+    loading: () => <div style={{ position: "fixed", inset: 0, zIndex: 1 }} />,
+  }
 );
 
 type EventsResponse = {
