@@ -5,6 +5,15 @@
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)](https://www.typescriptlang.org/)
+[![CI](https://github.com/jzjzzzzzzz/PlanetPulse/actions/workflows/ci.yml/badge.svg)](https://github.com/jzjzzzzzzz/PlanetPulse/actions/workflows/ci.yml)
+
+**Live Demo:** [planet-pulse-eta.vercel.app](https://planet-pulse-eta.vercel.app)
+
+---
+
+## Current Status
+
+Phase 1 is deployed and publicly accessible. NASA EONET is active. NASA FIRMS is optional (not currently configured). This project is not an official NASA product and is not an emergency alert service.
 
 Planet Pulse transforms scattered environmental data into a clear global overview and a personalized local environmental signal. It combines a cinematic interactive 3D Earth, real NASA environmental-event data, an explainable hotspot-ranking system, and location-aware information.
 
@@ -155,18 +164,47 @@ The FIRMS key is **never exposed to the client**. All FIRMS requests go through 
 
 ---
 
+## Production Verification
+
+| Item | Status |
+|------|--------|
+| **Production URL** | [planet-pulse-eta.vercel.app](https://planet-pulse-eta.vercel.app) |
+| **Deployment date** | 2026-07-10 |
+| **Vercel project** | `planet-pulse` |
+| **Production branch** | `main` |
+| **GitHub connected** | Pending (requires Vercel GitHub integration) |
+
+### Tested Routes
+
+| Route | Status | Notes |
+|-------|--------|-------|
+| `/` (homepage) | ✅ 200 | Full Planet Pulse app |
+| `/api/health` | ✅ 200 | Returns `{"status":"ok"}` |
+| `/api/events` | ✅ 200 | EONET with fallback data |
+| `/api/location` | ✅ 200 | Vercel IP geolocation |
+| `/api/fires` | ✅ 200 | Graceful unavailable (no FIRMS key) |
+
+### Current Limitations
+
+- NASA FIRMS is **not configured** — fire detections return unavailable
+- EONET live fetch may fall back to bundled sample data when the NASA API is unreachable
+- No database, auth, or persistent storage
+- GitHub Actions CI badge activates after the first push to `main`
+
 ## Vercel Deployment
 
+This project is connected to Vercel for automatic deployments on pushes to `main`.
+
 ```bash
-# 1. Install Vercel CLI (if not installed)
+# 1. Install Vercel CLI
 npm i -g vercel
 
-# 2. Deploy
-vercel
+# 2. Deploy to production
+vercel --prod
 
-# 3. Set environment variables in Vercel dashboard:
+# 3. Set environment variables:
+vercel env add NEXT_PUBLIC_SITE_URL production
 #    NASA_FIRMS_MAP_KEY (optional)
-#    NEXT_PUBLIC_SITE_URL (your deployment URL)
 ```
 
 The app automatically reads Vercel's IP geolocation headers for approximate user location in production.
