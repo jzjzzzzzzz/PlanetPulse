@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import dynamic from "next/dynamic";
 import type { EnvironmentalEvent, EventCategory, UserLocation } from "@/types/environment";
 import { computePersonalRelevance } from "@/lib/scoring/personal-relevance";
@@ -11,7 +11,11 @@ import LayerPanel from "@/components/layout/LayerPanel";
 import HotspotPanel from "@/components/layout/HotspotPanel";
 import LocalSignalBar from "@/components/layout/LocalSignalBar";
 import MobileEventSheet from "@/components/layout/MobileEventSheet";
+import GlobeControls from "@/components/globe/GlobeControls";
+import GlobeLegend from "@/components/globe/GlobeLegend";
+import GlobeHoverTooltip from "@/components/globe/GlobeHoverTooltip";
 import GlobeLoadingState from "@/components/globe/GlobeLoadingState";
+import type { EnvironmentalGlobeRef } from "@/components/globe/GlobeImpl";
 
 // Dynamic import for the globe — no SSR
 const EnvironmentalGlobe = dynamic(
@@ -19,13 +23,17 @@ const EnvironmentalGlobe = dynamic(
   {
     ssr: false,
     loading: () => <GlobeLoadingState />,
-  }
+  },
 );
 
 type EventsResponse = {
   events: EnvironmentalEvent[];
-  source: "live" | "fallback";
-  count: number;
+  metadata?: {
+    source: string;
+    eventCount: number;
+  };
+  source?: string;
+  count?: number;
 };
 
 type LocationResponse = UserLocation & { source: string };
@@ -57,9 +65,14 @@ export default function Home() {
 
   // --- UI state ---
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [hoveredEvent, setHoveredEvent] = useState<EnvironmentalEvent | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<EventCategory | "all">("all");
   const [hasFirmsKey, setHasFirmsKey] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
+  const [isAutoRotating, setIsAutoRotating] = useState(true);
+
+  // --- Globe ref ---
+  const globeRef = useRef<EnvironmentalGlobeRef>(null);
 
   // --- Fetch events ---
   useEffect(() => {
@@ -77,7 +90,9 @@ export default function Home() {
         const data: EventsResponse = await res.json();
         if (!cancelled) {
           setEvents(data.events);
-          setDataSource(data.source);
+          // Support both metadata.source (new) and source (legacy)
+          const src = data.metadata?.source ?? data.source ?? "offline";
+          setDataSource(src === "live" ? "live" : src === "stale-cache" ? "live" : "fallback");
           setLastUpdated(new Date().toISOString());
         }
       } catch (err) {
@@ -116,7 +131,6 @@ export default function Home() {
             source: "vercel",
           });
         } else if (!cancelled) {
-          // Fall back to browser timezone
           const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
           setUserLocation((prev) => ({
             ...prev,
@@ -135,21 +149,13 @@ export default function Home() {
     };
   }, []);
 
-  // --- Check FIRMS key availability (client-side proxy check) ---
+  // --- Check FIRMS key availability ---
   useEffect(() => {
-    // We check by making a request to a test bbox — if it returns "unavailable" we know
-    // Actually, let's just check the env hint. Since we can't read server env from client,
-    // we'll check via an API call or just set it optimistically.
-    // For now, we can check by making a fires request with a tiny bbox.
     async function checkFirms() {
       try {
         const res = await fetch("/api/fires?bbox=-0.1,-0.1,0.1,0.1&days=1");
         const data = await res.json();
-        if ("source" in data && data.source === "unavailable") {
-          setHasFirmsKey(false);
-        } else {
-          setHasFirmsKey(true);
-        }
+        setHasFirmsKey(!("source" in data && data.source === "unavailable"));
       } catch {
         setHasFirmsKey(false);
       }
@@ -163,9 +169,16 @@ export default function Home() {
     return events.filter((e) => e.category === selectedCategory);
   }, [events, selectedCategory]);
 
-  // Effective user coordinates (precise > approximate)
+  // Effective user coordinates
   const effectiveLat = preciseLocation?.latitude ?? userLocation.latitude;
   const effectiveLng = preciseLocation?.longitude ?? userLocation.longitude;
+
+  // User location label
+  const userLocationLabel = useMemo(() => {
+    if (preciseLocation) return "Precise location for this session";
+    if (userLocation.source === "vercel") return "Approximate location";
+    return "Your location";
+  }, [preciseLocation, userLocation.source]);
 
   // --- Nearest event ---
   const nearestEvent = useMemo(() => {
@@ -182,13 +195,11 @@ export default function Home() {
     return nearest;
   }, [events, effectiveLat, effectiveLng]);
 
-  // --- Distance to nearest event ---
   const nearestDistance = useMemo(() => {
     if (!nearestEvent || effectiveLat == null || effectiveLng == null) return null;
     return haversineDistance(effectiveLat, effectiveLng, nearestEvent.latitude, nearestEvent.longitude);
   }, [nearestEvent, effectiveLat, effectiveLng]);
 
-  // Weighted average of nearest and event data
   const personalRelevance = useMemo(() => {
     if (!nearestEvent) return null;
     const now = new Date();
@@ -206,7 +217,7 @@ export default function Home() {
                 hour: "2-digit",
                 hourCycle: "h23",
               }),
-              10
+              10,
             );
             return hour >= 6 && hour < 20;
           })()
@@ -214,7 +225,6 @@ export default function Home() {
     });
   }, [nearestEvent, nearestDistance, userLocation.timezone]);
 
-  // --- Local time ---
   const localTime = useMemo(() => {
     if (userLocation.timezone) {
       return formatLocalTime(userLocation.timezone);
@@ -225,6 +235,10 @@ export default function Home() {
   // --- Handlers ---
   const handleSelectEvent = useCallback((event: EnvironmentalEvent | null) => {
     setSelectedEventId(event?.id ?? null);
+  }, []);
+
+  const handleHoverEvent = useCallback((event: EnvironmentalEvent | null) => {
+    setHoveredEvent(event);
   }, []);
 
   const handleSelectCategory = useCallback((category: EventCategory | "all") => {
@@ -254,20 +268,57 @@ export default function Home() {
         setGeoDenied(true);
         setGeoLoading(false);
       },
-      { enableHighAccuracy: false, timeout: 10000 }
+      { enableHighAccuracy: false, timeout: 10000 },
     );
   }, []);
+
+  // --- Globe control handlers ---
+  const handleZoomIn = useCallback(() => globeRef.current?.zoomIn(), []);
+  const handleZoomOut = useCallback(() => globeRef.current?.zoomOut(), []);
+  const handleResetView = useCallback(() => globeRef.current?.resetView(), []);
+  const handleFocusUser = useCallback(() => {
+    if (effectiveLat != null && effectiveLng != null) {
+      globeRef.current?.focusOnLocation(effectiveLat, effectiveLng);
+    }
+  }, [effectiveLat, effectiveLng]);
+  const handleToggleAutoRotate = useCallback(() => {
+    globeRef.current?.toggleAutoRotate();
+    setIsAutoRotating((prev) => !prev);
+  }, []);
+
+  const hasUserLocation = effectiveLat != null && effectiveLng != null;
 
   return (
     <div style={{ height: "100dvh", width: "100vw", position: "relative", overflow: "hidden" }}>
       {/* --- Globe --- */}
       <EnvironmentalGlobe
+        ref={globeRef}
         events={filteredEvents}
         selectedEventId={selectedEventId}
         onSelectEvent={handleSelectEvent}
+        onHoverEvent={handleHoverEvent}
         userLatitude={effectiveLat}
         userLongitude={effectiveLng}
+        userLocationLabel={userLocationLabel}
+        hoveredEventId={hoveredEvent?.id ?? null}
       />
+
+      {/* --- Hover tooltip --- */}
+      <GlobeHoverTooltip event={hoveredEvent} userLocationLabel={userLocationLabel} />
+
+      {/* --- Globe controls --- */}
+      <GlobeControls
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
+        onReset={handleResetView}
+        onFocusUser={handleFocusUser}
+        onToggleAutoRotate={handleToggleAutoRotate}
+        isAutoRotating={isAutoRotating}
+        hasUserLocation={hasUserLocation}
+      />
+
+      {/* --- Globe legend --- */}
+      <GlobeLegend />
 
       {/* --- Top Status Bar --- */}
       <TopStatusBar
@@ -375,10 +426,29 @@ export default function Home() {
               fontSize: 12,
               color: "var(--color-warning)",
               lineHeight: 1.5,
-              marginBottom: 20,
+              marginBottom: 12,
             }}>
               <strong>Disclaimer:</strong> Planet Pulse uses satellite and public environmental data
               for awareness and exploration. It is not an official emergency alert service.
+            </div>
+            <div style={{
+              marginBottom: 20,
+              padding: "0 4px",
+              fontSize: 11,
+              color: "var(--color-text-muted)",
+              lineHeight: 1.6,
+              textAlign: "center",
+            }}>
+              Copyright © 2026 <strong style={{ color: "var(--color-text-secondary)" }}>John Zhou</strong>.
+              Licensed under the{" "}
+              <a
+                href="https://www.apache.org/licenses/LICENSE-2.0"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: "var(--color-location)", textDecoration: "underline" }}
+              >
+                Apache License 2.0
+              </a>.
             </div>
             <button
               onClick={() => setShowInfo(false)}
