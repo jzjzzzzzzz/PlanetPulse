@@ -497,6 +497,7 @@ const GlobeImpl = forwardRef<EnvironmentalGlobeRef, GlobeImplProps>(
       <div
         ref={containerRef}
         id="globe-container"
+        suppressHydrationWarning
         style={{
           position: "fixed",
           inset: 0,

@@ -42,7 +42,6 @@ const EnvironmentalGlobe = forwardRef<
 >(function EnvironmentalGlobe(props, ref) {
   const implRef = useRef<EnvironmentalGlobeRef>(null);
 
-  // Proxy the imperative handle through the dynamic-import boundary
   useImperativeHandle(
     ref,
     () => ({

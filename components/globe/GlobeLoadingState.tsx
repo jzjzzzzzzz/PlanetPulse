@@ -65,7 +65,7 @@ const textStyle: React.CSSProperties = {
 
 export default function GlobeLoadingState() {
   return (
-    <div style={containerStyle} aria-label="Initializing live Earth" role="status">
+    <div style={containerStyle} aria-label="Initializing live Earth" role="status" suppressHydrationWarning>
       <style>{`
         @keyframes globe-loading-spin {
           0% { transform: rotate(0deg); }

@@ -42,6 +42,7 @@ export default class GlobeErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         <div
+          suppressHydrationWarning
           style={{
             position: "fixed",
             inset: 0,
