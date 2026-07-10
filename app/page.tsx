@@ -13,6 +13,8 @@ import LocalSignalBar from "@/components/layout/LocalSignalBar";
 import MobileEventSheet from "@/components/layout/MobileEventSheet";
 import GlobeLegend from "@/components/globe/GlobeLegend";
 import EventDetails from "@/components/events/EventDetails";
+import ObservationTimeline from "@/components/events/ObservationTimeline";
+import EpicSatellite from "@/components/events/EpicSatellite";
 
 // Dynamic import for the globe — no SSR
 const EnvironmentalGlobe = dynamic(
@@ -48,6 +50,7 @@ export default function Home() {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<EventCategory | "all">("all");
   const [refreshIn, setRefreshIn] = useState(60);
+  const [jumpToObs, setJumpToObs] = useState<{ lat: number; lng: number } | null>(null);
 
   // --- Fetch events (extracted for reuse) ---
   const fetchEvents = useCallback(async () => {
@@ -154,6 +157,7 @@ export default function Home() {
         userLat={effectiveLat}
         userLng={effectiveLng}
         nearestEvent={nearestEvent}
+        jumpToObs={jumpToObs}
       />
 
       <EventDetails
@@ -162,6 +166,10 @@ export default function Home() {
         onFocusGlobe={() => selectedEvent && handleSelectEvent(selectedEvent)}
         onClose={handleCloseEvent}
       />
+
+      <ObservationTimeline event={selectedEvent} onJumpTo={(obs) => setJumpToObs({ lat: obs.latitude, lng: obs.longitude })} />
+
+      <EpicSatellite />
 
       <TopStatusBar localTime={localTime} dataStatus={dataSource === "offline" ? "offline" : dataSource === "fallback" ? "stale" : "live"} isFallbackData={dataSource === "fallback"} eventsCount={events.length} lastUpdated={lastUpdated} refreshIn={refreshIn} onRefresh={handleRefresh} onOpenInfo={() => setShowInfo(!showInfo)} />
 

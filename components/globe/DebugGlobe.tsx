@@ -27,6 +27,7 @@ type Props = {
   userLat?: number | null;
   userLng?: number | null;
   nearestEvent?: EnvironmentalEvent | null;
+  jumpToObs?: { lat: number; lng: number } | null;
 };
 
 // ============================================================
@@ -54,7 +55,7 @@ const btn: React.CSSProperties = {
 // ============================================================
 
 export default function DebugGlobe({
-  events, selectedEventId, onSelectEvent, userLat, userLng, nearestEvent,
+  events, selectedEventId, onSelectEvent, userLat, userLng, nearestEvent, jumpToObs,
 }: Props) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const globeEl = useRef<any>(null);
@@ -137,6 +138,13 @@ export default function DebugGlobe({
     }, 100);
     return () => clearTimeout(t);
   }, [selectedEventId, events, ready]);
+
+  // ---- Jump to observation position ----
+  useEffect(() => {
+    if (!ready || !jumpToObs || !globeEl.current) return;
+    altRef.current = 1.6;
+    try { globeEl.current?.pointOfView({ lat: jumpToObs.lat, lng: jumpToObs.lng, altitude: 1.6 }, 600); } catch { /* */ }
+  }, [jumpToObs, ready]);
 
   // ---- Observation history paths ----
   const historyPath = useMemo(() => {
