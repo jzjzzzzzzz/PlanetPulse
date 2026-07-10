@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
  * GET /api/events
  *
  * Returns normalized environmental events from NASA EONET v3.
- * Falls back to local sample data when EONET is unreachable.
+ * Falls back to cached data or local sample data when EONET is unreachable.
  * Uses server-side caching with a 10-minute revalidation window.
  */
 export async function GET() {
@@ -19,15 +19,17 @@ export async function GET() {
   try {
     const result = await fetchEonetEvents();
 
-    if (result.source === "fallback") {
-      headers["X-Data-Source"] = "fallback";
+    // Add data-source header for observability
+    headers["X-Data-Source"] = result.metadata.source;
+
+    if (result.metadata.degradedReason) {
+      headers["X-Degraded-Reason"] = result.metadata.degradedReason;
     }
 
     return NextResponse.json(
       {
         events: result.events,
-        source: result.source,
-        count: result.events.length,
+        metadata: result.metadata,
       },
       { headers }
     );
@@ -39,7 +41,16 @@ export async function GET() {
         error: "EVENTS_UNAVAILABLE",
         message:
           "Unable to retrieve environmental events at this time. Please try again later.",
-        source: "error",
+        metadata: {
+          source: "fallback",
+          provider: "NASA EONET",
+          format: "fallback",
+          fetchedAt: new Date().toISOString(),
+          upstreamUpdatedAt: null,
+          eventCount: 0,
+          attemptCount: 0,
+          degradedReason: `Unexpected error: ${(error as Error).message}`,
+        },
       },
       { status: 502, headers }
     );

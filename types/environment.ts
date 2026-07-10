@@ -55,6 +55,21 @@ export const CATEGORY_COLORS_HEX: Record<EventCategory, string> = {
 
 export type GeometryType = "Point" | "Polygon" | "Other";
 
+/** Data source discriminator */
+export type DataSource = "live" | "stale-cache" | "fallback";
+
+/** Data freshness classification */
+export type DataFreshness = "live" | "recent" | "aging" | "stale" | "unknown";
+
+/** Individual observation from EONET geometry history */
+export type EventObservation = {
+  observedAt: string | null;
+  latitude: number;
+  longitude: number;
+  magnitudeValue: number | null;
+  magnitudeUnit: string | null;
+};
+
 /** Normalized environmental event from NASA EONET or fallback */
 export type EnvironmentalEvent = {
   id: string;
@@ -71,6 +86,20 @@ export type EnvironmentalEvent = {
   magnitudeUnit: string | null;
   hotspotScore: number;
   scoreExplanation: string[];
+  /** Chronologically sorted, deduplicated observation history (max 30) */
+  observations: EventObservation[];
+};
+
+/** Response metadata describing the data source and freshness */
+export type EventsResponseMetadata = {
+  source: DataSource;
+  provider: "NASA EONET";
+  format: "json" | "geojson" | "fallback";
+  fetchedAt: string;
+  upstreamUpdatedAt: string | null;
+  eventCount: number;
+  attemptCount: number;
+  degradedReason: string | null;
 };
 
 /** User location state */
@@ -106,5 +135,5 @@ export type ApiError = {
   fallback?: boolean;
 };
 
-/** Data freshness indicator */
+/** Data freshness indicator (legacy — prefer DataFreshness) */
 export type DataStatus = "live" | "cached" | "stale" | "offline";

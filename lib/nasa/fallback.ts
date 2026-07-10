@@ -1,10 +1,21 @@
 // ============================================================
 // Static fallback events — bundled at build time.
-// Used when NASA EONET is unreachable.
+// Used when NASA EONET is unreachable and no cache is available.
 // Clearly labeled as sample data, not live NASA data.
 // ============================================================
 
 import type { EnvironmentalEvent } from "@/types/environment";
+
+/** Build a single synthetic observation from the event coordinates */
+function obs(
+  observedAt: string,
+  lat: number,
+  lng: number,
+  magnitudeValue: number | null,
+  magnitudeUnit: string | null,
+) {
+  return { observedAt, latitude: lat, longitude: lng, magnitudeValue, magnitudeUnit };
+}
 
 export const FALLBACK_EVENTS: EnvironmentalEvent[] = [
   {
@@ -28,6 +39,11 @@ export const FALLBACK_EVENTS: EnvironmentalEvent[] = [
       "Multiple recent observations",
       "Severe fire conditions",
     ],
+    observations: [
+      obs("2026-07-08T12:00:00Z", 34.2, -118.3, 5000, "acres"),
+      obs("2026-07-09T00:00:00Z", 34.2, -118.3, 10000, "acres"),
+      obs("2026-07-10T08:00:00Z", 34.2, -118.3, 15000, "acres"),
+    ],
   },
   {
     id: "fallback-002",
@@ -50,6 +66,11 @@ export const FALLBACK_EVENTS: EnvironmentalEvent[] = [
       "Multiple recent observations",
       "Category 4 equivalent",
     ],
+    observations: [
+      obs("2026-07-05T00:00:00Z", 14.5, 128.7, 65, "knots"),
+      obs("2026-07-07T12:00:00Z", 14.5, 128.7, 90, "knots"),
+      obs("2026-07-10T14:00:00Z", 14.5, 128.7, 120, "knots"),
+    ],
   },
   {
     id: "fallback-003",
@@ -70,6 +91,11 @@ export const FALLBACK_EVENTS: EnvironmentalEvent[] = [
       "Updated within the last 12 hours",
       "Magnitude data available",
       "Sustained eruptive activity",
+    ],
+    observations: [
+      obs("2026-06-28T00:00:00Z", 19.421, -155.287, 1, "VEI"),
+      obs("2026-07-05T12:00:00Z", 19.421, -155.287, 2, "VEI"),
+      obs("2026-07-10T06:00:00Z", 19.421, -155.287, 3, "VEI"),
     ],
   },
   {
@@ -92,6 +118,11 @@ export const FALLBACK_EVENTS: EnvironmentalEvent[] = [
       "Magnitude data available",
       "Widespread inundation reported",
     ],
+    observations: [
+      obs("2026-07-03T00:00:00Z", 23.685, 90.356, 20000, "hectares"),
+      obs("2026-07-06T12:00:00Z", 23.685, 90.356, 35000, "hectares"),
+      obs("2026-07-09T18:00:00Z", 23.685, 90.356, 50000, "hectares"),
+    ],
   },
   {
     id: "fallback-005",
@@ -112,6 +143,10 @@ export const FALLBACK_EVENTS: EnvironmentalEvent[] = [
       "Updated within the last 6 hours",
       "Magnitude data unavailable",
       "Seasonal Saharan dust transport",
+    ],
+    observations: [
+      obs("2026-07-09T00:00:00Z", 20.3, 3.8, null, null),
+      obs("2026-07-10T10:00:00Z", 20.3, 3.8, null, null),
     ],
   },
   {
@@ -134,6 +169,10 @@ export const FALLBACK_EVENTS: EnvironmentalEvent[] = [
       "Magnitude data unavailable",
       "Monsoon-related slope failure",
     ],
+    observations: [
+      obs("2026-07-07T00:00:00Z", 30.7, 79.1, null, null),
+      obs("2026-07-09T12:00:00Z", 30.7, 79.1, null, null),
+    ],
   },
   {
     id: "fallback-007",
@@ -155,6 +194,11 @@ export const FALLBACK_EVENTS: EnvironmentalEvent[] = [
       "Magnitude data available",
       "Multi-season rainfall deficit",
     ],
+    observations: [
+      obs("2026-06-01T00:00:00Z", -2.0, 38.0, 2, "SPI"),
+      obs("2026-07-01T00:00:00Z", -2.0, 38.0, 3, "SPI"),
+      obs("2026-07-08T00:00:00Z", -2.0, 38.0, 4, "SPI"),
+    ],
   },
   {
     id: "fallback-008",
@@ -175,6 +219,11 @@ export const FALLBACK_EVENTS: EnvironmentalEvent[] = [
       "Updated within the last 24 hours",
       "Magnitude data available",
       "Below-average winter extent",
+    ],
+    observations: [
+      obs("2026-07-01T00:00:00Z", -78.0, -100.0, 6.0, "million sq km"),
+      obs("2026-07-05T00:00:00Z", -78.0, -100.0, 5.5, "million sq km"),
+      obs("2026-07-10T00:00:00Z", -78.0, -100.0, 5.2, "million sq km"),
     ],
   },
 ];
