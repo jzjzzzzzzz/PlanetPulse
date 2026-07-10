@@ -11,68 +11,32 @@ import React, {
 } from "react";
 import GlobeGL from "react-globe.gl";
 import type { EnvironmentalEvent } from "@/types/environment";
+import { CATEGORY_COLORS_HEX } from "@/types/environment";
+import { getSeverityTier } from "@/lib/globe/event-visuals";
 import {
-  getEventColor,
-  getPointRadius,
-  getPointAltitude,
-  getSeverityTier,
-  getRingRadius,
-  getRingSpeed,
-  SELECTED_SCALE,
-  SELECTED_ALTITUDE_SCALE,
   USER_MARKER_COLOR,
-  USER_MARKER_RADIUS,
-  USER_MARKER_RING_COLOR,
-  USER_MARKER_RING_RADIUS,
   DEFAULT_ALTITUDE,
   MIN_ALTITUDE,
   MAX_ALTITUDE,
   AUTO_ROTATE_SPEED,
   FOCUS_DURATION_MS,
   FOCUS_DURATION_REDUCED_MS,
-  prepareHistoryPath,
 } from "@/lib/globe/event-visuals";
 
 // ============================================================
 // Types
 // ============================================================
 
-type PointData = {
+type MarkerData = {
   id: string;
   lat: number;
   lng: number;
   color: string;
-  radius: number;
-  altitude: number;
-  isUser: boolean;
-  isSelected: boolean;
-  severityTier: string;
-  event: EnvironmentalEvent | null;
-};
-
-type RingData = {
-  lat: number;
-  lng: number;
-  color: string;
-  maxRadius: number;
-  propagationSpeed: number;
-  repeatPeriod: number;
-};
-
-type LabelData = {
-  lat: number;
-  lng: number;
-  text: string;
-  color: string;
   size: number;
-  altitude: number;
-};
-
-type HistoryArc = {
-  lat: number;
-  lng: number;
-  color: string;
-  opacity: number;
+  isSelected: boolean;
+  isHighScore: boolean;
+  isUser: boolean;
+  title: string;
 };
 
 export type EnvironmentalGlobeRef = {
@@ -100,7 +64,32 @@ type GlobeImplProps = {
 // ============================================================
 
 const MAX_MARKERS = 200;
-const LOW_SCORE_COLOR = "rgba(141, 154, 175, 0.5)";
+const USER_MARKER_SIZE = 12;
+const FALLBACK_COLOR = "#8D9AAF";
+const SELECTED_BORDER_COLOR = "#F4F7FB";
+
+const INJECTED_STYLES = `
+  @keyframes marker-pulse {
+    0%, 100% { opacity: 0.6; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.15); }
+  }
+  .globe-marker--pulse {
+    animation: marker-pulse 2.2s ease-in-out infinite;
+  }
+  .globe-marker--selected {
+    border: 2px solid ${SELECTED_BORDER_COLOR} !important;
+    transform: scale(1.35) !important;
+    z-index: 2;
+    position: relative;
+  }
+  .globe-marker--user {
+    border-radius: 2px !important;
+    transform: rotate(45deg);
+  }
+  .globe-marker--user.globe-marker--selected {
+    transform: rotate(45deg) scale(1.35) !important;
+  }
+`;
 
 // ============================================================
 // Component
@@ -122,13 +111,12 @@ const GlobeImpl = forwardRef<EnvironmentalGlobeRef, GlobeImplProps>(
   ) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const globeEl = useRef<any>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
     const [hasInteracted, setHasInteracted] = useState(false);
     const [globeReady, setGlobeReady] = useState(false);
     const autoRotateRef = useRef(true);
     const prefersReducedMotion = useRef(false);
 
-    // Mutable refs for DOM/Three.js callbacks
+    // Mutable refs
     const eventsRef = useRef(events);
     eventsRef.current = events;
     const onSelectRef = useRef(onSelectEvent);
@@ -136,278 +124,126 @@ const GlobeImpl = forwardRef<EnvironmentalGlobeRef, GlobeImplProps>(
     const onHoverRef = useRef(onHoverEvent);
     onHoverRef.current = onHoverEvent;
 
-    // ---- Reduced motion detection ----
+    // ---- Reduced motion ----
     useEffect(() => {
       const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
       prefersReducedMotion.current = mq.matches;
-      const handler = (e: MediaQueryListEvent) => {
-        prefersReducedMotion.current = e.matches;
-      };
+      const handler = (e: MediaQueryListEvent) => { prefersReducedMotion.current = e.matches; };
       mq.addEventListener("change", handler);
       return () => mq.removeEventListener("change", handler);
     }, []);
 
-    // ---- Build event markers (top 200 by hotspotScore) ----
-    const { pointData, ringData, labelData } = useMemo(() => {
-      const points: PointData[] = [];
-      const rings: RingData[] = [];
-      const labels: LabelData[] = [];
-
-      if (!events.length) return { pointData: points, ringData: rings, labelData: labels };
-
-      const sorted = [...events]
+    // ---- Build event markers ----
+    const eventMarkers: MarkerData[] = useMemo(() => {
+      if (!events.length) return [];
+      return [...events]
         .sort((a, b) => b.hotspotScore - a.hotspotScore)
-        .slice(0, MAX_MARKERS);
-
-      for (const event of sorted) {
-        const isSelected = event.id === selectedEventId;
-        const isHovered = event.id === hoveredEventId;
-        const color = getEventColor(event.category);
-        const tier = getSeverityTier(event.hotspotScore);
-        const baseRadius = getPointRadius(event.hotspotScore);
-        const baseAltitude = getPointAltitude(event.hotspotScore);
-
-        const radius = isSelected
-          ? baseRadius * SELECTED_SCALE
-          : isHovered
-            ? baseRadius * 1.3
-            : baseRadius;
-        const altitude = isSelected
-          ? baseAltitude * SELECTED_ALTITUDE_SCALE
-          : isHovered
-            ? baseAltitude * 1.4
-            : baseAltitude;
-
-        points.push({
-          id: event.id,
-          lat: event.latitude,
-          lng: event.longitude,
-          color,
-          radius,
-          altitude,
-          isUser: false,
-          isSelected,
-          severityTier: tier,
-          event,
+        .slice(0, MAX_MARKERS)
+        .map((e) => {
+          const tier = getSeverityTier(e.hotspotScore);
+          return {
+            id: e.id,
+            lat: e.latitude,
+            lng: e.longitude,
+            color: CATEGORY_COLORS_HEX[e.category] ?? FALLBACK_COLOR,
+            size: Math.round(Math.min(6 + (e.hotspotScore / 100) * 10, 16)),
+            isSelected: e.id === selectedEventId,
+            isHighScore: tier !== "low",
+            isUser: false,
+            title: e.title,
+          };
         });
-
-        // Animated ring for medium+ severity
-        if (tier !== "low") {
-          rings.push({
-            lat: event.latitude,
-            lng: event.longitude,
-            color,
-            maxRadius: getRingRadius(event.hotspotScore),
-            propagationSpeed: getRingSpeed(event.hotspotScore),
-            repeatPeriod: getRingSpeed(event.hotspotScore),
-          });
-        }
-
-        // Label for selected event only
-        if (isSelected) {
-          labels.push({
-            lat: event.latitude,
-            lng: event.longitude,
-            text: event.title,
-            color: "#F4F7FB",
-            size: 0.18,
-            altitude: altitude + 0.15,
-          });
-        }
-      }
-
-      return { pointData: points, ringData: rings, labelData: labels };
-    }, [events, selectedEventId, hoveredEventId]);
-
-    // ---- User-location marker ----
-    const userPoint: PointData[] = useMemo(() => {
-      if (userLatitude == null || userLongitude == null) return [];
-      return [
-        {
-          id: "user-location",
-          lat: userLatitude,
-          lng: userLongitude,
-          color: USER_MARKER_COLOR,
-          radius: USER_MARKER_RADIUS,
-          altitude: 0.04,
-          isUser: true,
-          isSelected: false,
-          severityTier: "low",
-          event: null,
-        },
-      ];
-    }, [userLatitude, userLongitude]);
-
-    const userRing: RingData[] = useMemo(() => {
-      if (userLatitude == null || userLongitude == null) return [];
-      return [
-        {
-          lat: userLatitude,
-          lng: userLongitude,
-          color: USER_MARKER_RING_COLOR,
-          maxRadius: USER_MARKER_RING_RADIUS,
-          propagationSpeed: 4000,
-          repeatPeriod: 4000,
-        },
-      ];
-    }, [userLatitude, userLongitude]);
-
-    const userLabel: LabelData[] = useMemo(() => {
-      if (userLatitude == null || userLongitude == null) return [];
-      return [
-        {
-          lat: userLatitude,
-          lng: userLongitude,
-          text: userLocationLabel ?? "Approximate location",
-          color: USER_MARKER_COLOR,
-          size: 0.14,
-          altitude: 0.23,
-        },
-      ];
-    }, [userLatitude, userLongitude, userLocationLabel]);
-
-    // ---- Observation history arcs ----
-    const historyArcs: HistoryArc[] = useMemo(() => {
-      if (!selectedEventId) return [];
-      const event = events.find((e) => e.id === selectedEventId);
-      if (!event || event.observations.length < 2) return [];
-
-      const path = prepareHistoryPath(event.observations, 30);
-      if (path.length < 2) return [];
-
-      const color = getEventColor(event.category);
-      return path.map((p) => ({
-        lat: p.lat,
-        lng: p.lng,
-        color,
-        opacity: 0.15 + p.progress * 0.8,
-      }));
     }, [events, selectedEventId]);
 
-    // ---- Combined data ----
-    const allPoints = useMemo(
-      () => [...userPoint, ...pointData],
-      [userPoint, pointData],
-    );
-    const allRings = useMemo(
-      () => [...userRing, ...ringData],
-      [userRing, ringData],
-    );
-    const allLabels = useMemo(
-      () => [...userLabel, ...labelData],
-      [userLabel, labelData],
-    );
+    // ---- User marker ----
+    const userMarker: MarkerData[] = useMemo(() => {
+      if (userLatitude == null || userLongitude == null) return [];
+      return [{
+        id: "user-location",
+        lat: userLatitude,
+        lng: userLongitude,
+        color: USER_MARKER_COLOR,
+        size: USER_MARKER_SIZE,
+        isSelected: false,
+        isHighScore: false,
+        isUser: true,
+        title: userLocationLabel ?? "Your location",
+      }];
+    }, [userLatitude, userLongitude, userLocationLabel]);
 
-    // ---- History path data ----
-    const historyPathData = useMemo(() => {
-      if (!historyArcs.length || historyArcs.length < 2) return [];
-      const coords = historyArcs.map((p) => [p.lat, p.lng] as [number, number]);
-      return [{ coords, color: historyArcs[0].color }];
-    }, [historyArcs]);
+    const allMarkers: MarkerData[] = useMemo(
+      () => [...userMarker, ...eventMarkers],
+      [userMarker, eventMarkers],
+    );
 
     // ---- Fly to selected event ----
     useEffect(() => {
       if (!globeEl.current || !selectedEventId || !globeReady) return;
       const event = events.find((e) => e.id === selectedEventId);
       if (!event) return;
-
-      const duration = prefersReducedMotion.current
-        ? FOCUS_DURATION_REDUCED_MS
-        : FOCUS_DURATION_MS;
-
+      const duration = prefersReducedMotion.current ? FOCUS_DURATION_REDUCED_MS : FOCUS_DURATION_MS;
       const timer = setTimeout(() => {
         try {
-          globeEl.current?.pointOfView?.(
-            { lat: event.latitude, lng: event.longitude, altitude: 1.6 },
-            duration,
-          );
-        } catch { /* globe not ready */ }
-      }, 50);
-
+          globeEl.current?.pointOfView?.({ lat: event.latitude, lng: event.longitude, altitude: 1.5 }, duration);
+        } catch { /* ignore */ }
+      }, 150);
       return () => clearTimeout(timer);
     }, [selectedEventId, events, globeReady]);
 
     // ---- Imperative handle ----
-    useImperativeHandle(
-      ref,
-      () => ({
-        focusOnLocation(lat: number, lng: number) {
-          try {
-            const duration = prefersReducedMotion.current
-              ? FOCUS_DURATION_REDUCED_MS
-              : FOCUS_DURATION_MS;
-            globeEl.current?.pointOfView?.(
-              { lat, lng, altitude: 1.6 },
-              duration,
-            );
-          } catch { /* ignore */ }
-        },
-        zoomIn() {
-          try {
-            const controls = globeEl.current?.controls();
-            if (controls) {
-              const current = controls.target.length();
-              const target = Math.max(MIN_ALTITUDE, current * 0.7);
-              controls.target.setLength(target, true);
-            }
-          } catch { /* ignore */ }
-        },
-        zoomOut() {
-          try {
-            const controls = globeEl.current?.controls();
-            if (controls) {
-              const current = controls.target.length();
-              const target = Math.min(MAX_ALTITUDE, current * 1.4);
-              controls.target.setLength(target, true);
-            }
-          } catch { /* ignore */ }
-        },
-        resetView() {
-          try {
-            globeEl.current?.pointOfView?.(
-              { lat: 20, lng: 0, altitude: DEFAULT_ALTITUDE },
-              prefersReducedMotion.current ? 0 : 800,
-            );
-          } catch { /* ignore */ }
-        },
-        toggleAutoRotate() {
-          try {
-            const controls = globeEl.current?.controls();
-            if (controls) {
-              autoRotateRef.current = !autoRotateRef.current;
-              controls.autoRotate = autoRotateRef.current;
-            }
-          } catch { /* ignore */ }
-        },
-        isAutoRotating() {
-          return autoRotateRef.current;
-        },
-      }),
-      [],
-    );
+    useImperativeHandle(ref, () => ({
+      focusOnLocation(lat: number, lng: number) {
+        try {
+          const d = prefersReducedMotion.current ? 0 : FOCUS_DURATION_MS;
+          globeEl.current?.pointOfView?.({ lat, lng, altitude: 1.5 }, d);
+        } catch { /* ignore */ }
+      },
+      zoomIn() {
+        try {
+          const c = globeEl.current?.controls();
+          if (c) c.target.setLength(Math.max(MIN_ALTITUDE, c.target.length() * 0.7), true);
+        } catch { /* ignore */ }
+      },
+      zoomOut() {
+        try {
+          const c = globeEl.current?.controls();
+          if (c) c.target.setLength(Math.min(MAX_ALTITUDE, c.target.length() * 1.4), true);
+        } catch { /* ignore */ }
+      },
+      resetView() {
+        try {
+          globeEl.current?.pointOfView?.({ lat: 20, lng: 0, altitude: DEFAULT_ALTITUDE }, prefersReducedMotion.current ? 0 : 800);
+        } catch { /* ignore */ }
+      },
+      toggleAutoRotate() {
+        try {
+          const c = globeEl.current?.controls();
+          if (c) { autoRotateRef.current = !autoRotateRef.current; c.autoRotate = autoRotateRef.current; }
+        } catch { /* ignore */ }
+      },
+      isAutoRotating() { return autoRotateRef.current; },
+    }), []);
 
     // ---- Setup OrbitControls ----
     useEffect(() => {
       if (!globeReady) return;
-
       const id = setTimeout(() => {
         try {
-          const controls = globeEl.current?.controls();
-          if (controls) {
-            controls.autoRotate = !prefersReducedMotion.current;
-            controls.autoRotateSpeed = AUTO_ROTATE_SPEED;
-            controls.enableDamping = true;
-            controls.dampingFactor = 0.08;
-            controls.minDistance = MIN_ALTITUDE;
-            controls.maxDistance = MAX_ALTITUDE;
-            controls.rotateSpeed = 0.4;
-            controls.zoomSpeed = 0.8;
-            controls.enablePan = false;
+          const c = globeEl.current?.controls();
+          if (c) {
+            c.autoRotate = !prefersReducedMotion.current;
+            c.autoRotateSpeed = AUTO_ROTATE_SPEED;
+            c.enableDamping = true;
+            c.dampingFactor = 0.08;
+            c.minDistance = MIN_ALTITUDE;
+            c.maxDistance = MAX_ALTITUDE;
+            c.rotateSpeed = 0.4;
+            c.zoomSpeed = 0.8;
+            c.enablePan = false;
             autoRotateRef.current = !prefersReducedMotion.current;
           }
-        } catch { /* controls not ready */ }
+        } catch { /* ignore */ }
       }, 300);
-
       return () => clearTimeout(id);
     }, [globeReady]);
 
@@ -415,134 +251,106 @@ const GlobeImpl = forwardRef<EnvironmentalGlobeRef, GlobeImplProps>(
     useEffect(() => {
       if (!hasInteracted || !globeReady) return;
       try {
-        const controls = globeEl.current?.controls();
-        if (controls) {
-          controls.autoRotate = false;
-          autoRotateRef.current = false;
-        }
+        const c = globeEl.current?.controls();
+        if (c) { c.autoRotate = false; autoRotateRef.current = false; }
       } catch { /* ignore */ }
     }, [hasInteracted, globeReady]);
 
-    // ---- Interaction handlers ----
-    const handleGlobeClick = useCallback(
-      (point: object | null | undefined) => {
-        setHasInteracted(true);
-        if (!point) {
-          onSelectRef.current(null);
-          return;
-        }
-        const p = point as PointData;
-        if (p.isUser) return;
-        if (p.event) {
-          onSelectRef.current(p.event);
-        }
-      },
-      [],
-    );
-
-    const handleGlobeHover = useCallback(
-      (point: object | null) => {
-        if (!point) {
-          onHoverRef.current?.(null);
-          return;
-        }
-        const p = point as PointData;
-        if (p.isUser) {
-          onHoverRef.current?.({ id: "user-location" } as unknown as EnvironmentalEvent);
-          return;
-        }
-        if (p.event) {
-          onHoverRef.current?.(p.event);
-        }
-      },
-      [],
-    );
-
+    // ---- Handle ready ----
     const handleGlobeReady = useCallback(() => {
       setGlobeReady(true);
     }, []);
 
-    // ---- Point colour accessor ----
-    const pointColorAccessor = useCallback(
-      (d: object) => {
-        const p = d as PointData;
-        if (!p.isUser && p.severityTier === "low" && !p.isSelected) {
-          return LOW_SCORE_COLOR;
+    // ---- Handle globe click ----
+    const handleGlobeClick = useCallback(() => {
+      setHasInteracted(true);
+      onSelectRef.current(null);
+    }, []);
+
+    // ---- Create marker DOM element ----
+    const createMarkerElement = useCallback((d: object): HTMLElement => {
+      const m = d as MarkerData;
+      const el = document.createElement("div");
+
+      el.style.width = `${m.size}px`;
+      el.style.height = `${m.size}px`;
+      el.style.borderRadius = m.isUser ? "2px" : "50%";
+      el.style.background = m.color;
+      el.style.boxShadow = `0 0 ${m.size * 1.5}px ${m.color}55`;
+      el.style.cursor = m.isUser ? "default" : "pointer";
+      el.style.transition = "transform 0.2s ease, border 0.2s ease";
+      el.style.pointerEvents = "auto";
+      if (m.isUser) el.style.transform = "rotate(45deg)";
+
+      if (m.isHighScore) {
+        el.classList.add("globe-marker--pulse");
+      }
+
+      if (m.isSelected) {
+        el.classList.add("globe-marker--selected");
+        if (m.isUser) el.style.transform = "rotate(45deg) scale(1.35)";
+      }
+
+      el.title = m.title;
+
+      // Hover
+      el.addEventListener("mouseenter", () => {
+        if (m.id === "user-location") {
+          onHoverRef.current?.({ id: "user-location" } as unknown as EnvironmentalEvent);
+        } else {
+          const evt = eventsRef.current.find((e) => e.id === m.id);
+          if (evt) onHoverRef.current?.(evt);
         }
-        return p.color ?? LOW_SCORE_COLOR;
-      },
-      [],
-    );
+      });
+      el.addEventListener("mouseleave", () => {
+        onHoverRef.current?.(null);
+      });
+
+      // Click
+      el.addEventListener("click", (e: MouseEvent) => {
+        e.stopPropagation();
+        setHasInteracted(true);
+        if (m.id === "user-location") return;
+        const evt = eventsRef.current.find((ev) => ev.id === m.id);
+        if (evt) onSelectRef.current(evt);
+      });
+
+      return el;
+    }, []);
 
     // ============================================================
-    // Render — minimal props, no experimental/unstable ones
+    // Render
     // ============================================================
-
-    // Only pass path props when there is data
-    const pathProps = historyPathData.length > 0 ? {
-      pathsData: historyPathData,
-      pathPoints: "coords" as string,
-      pathPointLat: (p: object) => (p as [number, number])[0],
-      pathPointLng: (p: object) => (p as [number, number])[1],
-      pathPointAlt: 0.02,
-      pathColor: (d: object) => (d as { color: string }).color ?? "#8D9AAF",
-      pathStroke: 1,
-      pathDashLength: 0.03,
-      pathDashGap: 0.02,
-      pathDashAnimateTime: 6000,
-      pathTransitionDuration: 400,
-    } : {};
 
     return (
       <div
-        ref={containerRef}
         id="globe-container"
         suppressHydrationWarning
         style={{
           position: "fixed",
-          inset: 0,
+          top: 0,
+          left: 0,
+          width: "100vw",
+          height: "100dvh",
           zIndex: 1,
           background: "transparent",
           userSelect: "none",
           WebkitUserSelect: "none",
         }}
       >
+        <style>{INJECTED_STYLES}</style>
+
         <GlobeGL
           ref={globeEl}
-          globeImageUrl="/textures/earth-dark.jpg"
-          backgroundColor="rgba(0,0,0,0)"
-          atmosphereColor="#3B6FB6"
-          atmosphereAltitude={0.18}
-          // 3D point markers
-          pointsData={allPoints}
-          pointLat="lat"
-          pointLng="lng"
-          pointColor={pointColorAccessor}
-          pointAltitude="altitude"
-          pointRadius="radius"
-          // Animated rings
-          ringsData={allRings}
-          ringLat="lat"
-          ringLng="lng"
-          ringColor="color"
-          ringMaxRadius="maxRadius"
-          ringPropagationSpeed="propagationSpeed"
-          ringRepeatPeriod="repeatPeriod"
-          // Labels
-          labelsData={allLabels}
-          labelLat="lat"
-          labelLng="lng"
-          labelText="text"
-          labelColor="color"
-          labelSize="size"
-          labelAltitude="altitude"
-          // Interaction
+          globeImageUrl="/textures/earth-blue-marble.jpg"
+          backgroundColor="#0a1628"
+          atmosphereColor="#4FA4FF"
+          atmosphereAltitude={0.25}
+          htmlElementsData={allMarkers}
+          htmlElement={createMarkerElement}
           onGlobeClick={handleGlobeClick}
-          onPointHover={handleGlobeHover}
           onGlobeReady={handleGlobeReady}
           enablePointerInteraction
-          // Paths (only when data exists)
-          {...pathProps}
         />
       </div>
     );
