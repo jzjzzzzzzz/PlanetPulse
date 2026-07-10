@@ -1,65 +1,467 @@
-import Image from "next/image";
+"use client";
+
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import dynamic from "next/dynamic";
+import type { EnvironmentalEvent, EventCategory, UserLocation } from "@/types/environment";
+import { computePersonalRelevance } from "@/lib/scoring/personal-relevance";
+import { haversineDistance } from "@/lib/geo/distance";
+import { formatLocalTime, getHoursSince } from "@/lib/formatting/date";
+import TopStatusBar from "@/components/layout/TopStatusBar";
+import LayerPanel from "@/components/layout/LayerPanel";
+import HotspotPanel from "@/components/layout/HotspotPanel";
+import LocalSignalBar from "@/components/layout/LocalSignalBar";
+import MobileEventSheet from "@/components/layout/MobileEventSheet";
+import GlobeLoadingState from "@/components/globe/GlobeLoadingState";
+
+// Dynamic import for the globe — no SSR
+const EnvironmentalGlobe = dynamic(
+  () => import("@/components/globe/EnvironmentalGlobe"),
+  {
+    ssr: false,
+    loading: () => <GlobeLoadingState />,
+  }
+);
+
+type EventsResponse = {
+  events: EnvironmentalEvent[];
+  source: "live" | "fallback";
+  count: number;
+};
+
+type LocationResponse = UserLocation & { source: string };
 
 export default function Home() {
+  // --- Data state ---
+  const [events, setEvents] = useState<EnvironmentalEvent[]>([]);
+  const [eventsLoading, setEventsLoading] = useState(true);
+  const [eventsError, setEventsError] = useState<string | null>(null);
+  const [dataSource, setDataSource] = useState<"live" | "fallback" | "offline">("offline");
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+
+  // --- Location state ---
+  const [userLocation, setUserLocation] = useState<UserLocation>({
+    city: null,
+    country: null,
+    region: null,
+    latitude: null,
+    longitude: null,
+    timezone: null,
+    source: "unavailable",
+  });
+  const [preciseLocation, setPreciseLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [geoDenied, setGeoDenied] = useState(false);
+
+  // --- UI state ---
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<EventCategory | "all">("all");
+  const [hasFirmsKey, setHasFirmsKey] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
+
+  // --- Fetch events ---
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadEvents() {
+      setEventsLoading(true);
+      setEventsError(null);
+      try {
+        const res = await fetch("/api/events");
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.message || "Failed to load events");
+        }
+        const data: EventsResponse = await res.json();
+        if (!cancelled) {
+          setEvents(data.events);
+          setDataSource(data.source);
+          setLastUpdated(new Date().toISOString());
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setEventsError((err as Error).message);
+          setDataSource("offline");
+        }
+      } finally {
+        if (!cancelled) setEventsLoading(false);
+      }
+    }
+
+    loadEvents();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // --- Fetch location ---
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadLocation() {
+      try {
+        const res = await fetch("/api/location");
+        if (!res.ok) return;
+        const data: LocationResponse = await res.json();
+        if (!cancelled && data.source === "vercel") {
+          setUserLocation({
+            city: data.city ?? null,
+            country: data.country ?? null,
+            region: data.region ?? null,
+            latitude: data.latitude ?? null,
+            longitude: data.longitude ?? null,
+            timezone: data.timezone ?? null,
+            source: "vercel",
+          });
+        } else if (!cancelled) {
+          // Fall back to browser timezone
+          const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          setUserLocation((prev) => ({
+            ...prev,
+            timezone: tz || null,
+            source: prev.source === "unavailable" ? "browser-tz" : prev.source,
+          }));
+        }
+      } catch {
+        // Location unavailable — app still works
+      }
+    }
+
+    loadLocation();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // --- Check FIRMS key availability (client-side proxy check) ---
+  useEffect(() => {
+    // We check by making a request to a test bbox — if it returns "unavailable" we know
+    // Actually, let's just check the env hint. Since we can't read server env from client,
+    // we'll check via an API call or just set it optimistically.
+    // For now, we can check by making a fires request with a tiny bbox.
+    async function checkFirms() {
+      try {
+        const res = await fetch("/api/fires?bbox=-0.1,-0.1,0.1,0.1&days=1");
+        const data = await res.json();
+        if ("source" in data && data.source === "unavailable") {
+          setHasFirmsKey(false);
+        } else {
+          setHasFirmsKey(true);
+        }
+      } catch {
+        setHasFirmsKey(false);
+      }
+    }
+    checkFirms();
+  }, []);
+
+  // --- Filtered events ---
+  const filteredEvents = useMemo(() => {
+    if (selectedCategory === "all") return events;
+    return events.filter((e) => e.category === selectedCategory);
+  }, [events, selectedCategory]);
+
+  // Effective user coordinates (precise > approximate)
+  const effectiveLat = preciseLocation?.latitude ?? userLocation.latitude;
+  const effectiveLng = preciseLocation?.longitude ?? userLocation.longitude;
+
+  // --- Nearest event ---
+  const nearestEvent = useMemo(() => {
+    if (effectiveLat == null || effectiveLng == null || events.length === 0) return null;
+    let nearest: EnvironmentalEvent | null = null;
+    let minDist = Infinity;
+    for (const event of events) {
+      const d = haversineDistance(effectiveLat, effectiveLng, event.latitude, event.longitude);
+      if (d < minDist) {
+        minDist = d;
+        nearest = event;
+      }
+    }
+    return nearest;
+  }, [events, effectiveLat, effectiveLng]);
+
+  // --- Distance to nearest event ---
+  const nearestDistance = useMemo(() => {
+    if (!nearestEvent || effectiveLat == null || effectiveLng == null) return null;
+    return haversineDistance(effectiveLat, effectiveLng, nearestEvent.latitude, nearestEvent.longitude);
+  }, [nearestEvent, effectiveLat, effectiveLng]);
+
+  // Weighted average of nearest and event data
+  const personalRelevance = useMemo(() => {
+    if (!nearestEvent) return null;
+    const now = new Date();
+    return computePersonalRelevance({
+      distanceKm: nearestDistance,
+      hotspotScore: nearestEvent.hotspotScore,
+      recencyHours: nearestEvent.updatedAt
+        ? getHoursSince(nearestEvent.updatedAt, now)
+        : null,
+      isDaytimeLocal: userLocation.timezone
+        ? (() => {
+            const hour = parseInt(
+              new Date().toLocaleString("en-US", {
+                timeZone: userLocation.timezone,
+                hour: "2-digit",
+                hourCycle: "h23",
+              }),
+              10
+            );
+            return hour >= 6 && hour < 20;
+          })()
+        : null,
+    });
+  }, [nearestEvent, nearestDistance, userLocation.timezone]);
+
+  // --- Local time ---
+  const localTime = useMemo(() => {
+    if (userLocation.timezone) {
+      return formatLocalTime(userLocation.timezone);
+    }
+    return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }, [userLocation.timezone]);
+
+  // --- Handlers ---
+  const handleSelectEvent = useCallback((event: EnvironmentalEvent | null) => {
+    setSelectedEventId(event?.id ?? null);
+  }, []);
+
+  const handleSelectCategory = useCallback((category: EventCategory | "all") => {
+    setSelectedCategory(category);
+  }, []);
+
+  const handleRefresh = useCallback(() => {
+    window.location.reload();
+  }, []);
+
+  const handleRequestGeolocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      setGeoDenied(true);
+      return;
+    }
+    setGeoLoading(true);
+    setGeoDenied(false);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setPreciseLocation({
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+        });
+        setGeoLoading(false);
+      },
+      () => {
+        setGeoDenied(true);
+        setGeoLoading(false);
+      },
+      { enableHighAccuracy: false, timeout: 10000 }
+    );
+  }, []);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div style={{ height: "100dvh", width: "100vw", position: "relative", overflow: "hidden" }}>
+      {/* --- Globe --- */}
+      <EnvironmentalGlobe
+        events={filteredEvents}
+        selectedEventId={selectedEventId}
+        onSelectEvent={handleSelectEvent}
+        userLatitude={effectiveLat}
+        userLongitude={effectiveLng}
+      />
+
+      {/* --- Top Status Bar --- */}
+      <TopStatusBar
+        localTime={localTime}
+        dataStatus={dataSource === "offline" ? "offline" : dataSource === "fallback" ? "stale" : "live"}
+        isFallbackData={dataSource === "fallback"}
+        eventsCount={events.length}
+        lastUpdated={lastUpdated}
+        onRefresh={handleRefresh}
+        onOpenInfo={() => setShowInfo(!showInfo)}
+      />
+
+      {/* --- Left Panel: Signal Layers --- */}
+      <div className="panel-layer">
+        <LayerPanel
+          selectedCategory={selectedCategory}
+          onSelectCategory={handleSelectCategory}
+          eventsCount={events.length}
+          filteredCount={filteredEvents.length}
+          hasFirmsKey={hasFirmsKey}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+      </div>
+
+      {/* --- Right Panel: Global Hotspots --- */}
+      <div className="panel-layer">
+        <HotspotPanel
+          events={filteredEvents}
+          selectedEventId={selectedEventId}
+          onSelectEvent={handleSelectEvent}
+        />
+      </div>
+
+      {/* --- Bottom Bar: Your Signal --- */}
+      <div className="panel-layer">
+        <LocalSignalBar
+          userLocation={userLocation}
+          localTime={localTime}
+          nearestEvent={nearestEvent}
+          distanceKm={nearestDistance}
+          personalRelevanceScore={personalRelevance}
+          onRequestGeolocation={handleRequestGeolocation}
+          geoLoading={geoLoading}
+          geoDenied={geoDenied}
+        />
+      </div>
+
+      {/* --- Mobile Bottom Sheet --- */}
+      <MobileEventSheet
+        events={filteredEvents}
+        selectedEventId={selectedEventId}
+        onSelectEvent={handleSelectEvent}
+        selectedCategory={selectedCategory}
+        onSelectCategory={handleSelectCategory}
+      />
+
+      {/* --- Info / Disclaimer Modal --- */}
+      {showInfo && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 100,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "rgba(0,0,0,0.6)",
+            backdropFilter: "blur(4px)",
+          }}
+          onClick={() => setShowInfo(false)}
+          role="dialog"
+          aria-label="About Planet Pulse"
+          aria-modal="true"
+        >
+          <div
+            className="glass-panel"
+            style={{
+              maxWidth: 480,
+              width: "90%",
+              padding: 32,
+              color: "var(--color-text-primary)",
+            }}
+            onClick={(e) => e.stopPropagation()}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 16 }}>
+              About Planet Pulse
+            </h2>
+            <p style={{ color: "var(--color-text-secondary)", marginBottom: 16, lineHeight: 1.6 }}>
+              Planet Pulse transforms scattered environmental data into a clear global overview
+              and a personalized local environmental signal.
+            </p>
+            <div style={{ marginBottom: 16 }}>
+              <h3 style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--color-text-muted)", marginBottom: 8 }}>
+                Data Sources
+              </h3>
+              <ul style={{ color: "var(--color-text-secondary)", fontSize: 13, lineHeight: 2, paddingLeft: 16 }}>
+                <li>Environmental events from NASA EONET v3</li>
+                <li>Fire detections from NASA FIRMS (when configured)</li>
+              </ul>
+            </div>
+            <div style={{
+              background: "rgba(245, 166, 35, 0.1)",
+              border: "1px solid rgba(245, 166, 35, 0.3)",
+              borderRadius: 8,
+              padding: 12,
+              fontSize: 12,
+              color: "var(--color-warning)",
+              lineHeight: 1.5,
+              marginBottom: 20,
+            }}>
+              <strong>Disclaimer:</strong> Planet Pulse uses satellite and public environmental data
+              for awareness and exploration. It is not an official emergency alert service.
+            </div>
+            <button
+              onClick={() => setShowInfo(false)}
+              style={{
+                width: "100%",
+                padding: "10px 0",
+                background: "var(--color-location)",
+                color: "#fff",
+                border: "none",
+                borderRadius: 8,
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              Close
+            </button>
+          </div>
         </div>
-      </main>
+      )}
+
+      {/* --- Events Loading State --- */}
+      {eventsLoading && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: 100,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 30,
+            background: "var(--color-bg-panel)",
+            backdropFilter: "blur(12px)",
+            border: "1px solid var(--color-border)",
+            borderRadius: 8,
+            padding: "8px 20px",
+            color: "var(--color-text-secondary)",
+            fontSize: 13,
+          }}
+        >
+          Loading environmental data…
+        </div>
+      )}
+
+      {/* --- Events Error State --- */}
+      {eventsError && !eventsLoading && events.length === 0 && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: 100,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 30,
+            background: "var(--color-bg-panel)",
+            backdropFilter: "blur(12px)",
+            border: "1px solid rgba(255, 67, 93, 0.3)",
+            borderRadius: 8,
+            padding: "12px 20px",
+            color: "var(--color-volcano)",
+            fontSize: 13,
+            maxWidth: 360,
+            textAlign: "center",
+          }}
+        >
+          <p style={{ margin: 0 }}>Unable to load environmental data.</p>
+          <p style={{ margin: "4px 0 0", fontSize: 11, opacity: 0.7 }}>{eventsError}</p>
+          <button
+            onClick={handleRefresh}
+            style={{
+              marginTop: 8,
+              background: "var(--color-location)",
+              color: "#fff",
+              border: "none",
+              borderRadius: 6,
+              padding: "6px 16px",
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      )}
     </div>
   );
 }

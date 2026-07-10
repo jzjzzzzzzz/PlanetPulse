@@ -1,26 +1,54 @@
 {
-  "name": "day03",
+  "name": "planet-pulse",
   "version": "0.1.0",
   "private": true,
+  "description": "A global environmental situation-awareness website — cinematic 3D Earth, real NASA data, explainable hotspot ranking, and personalized local environmental signals.",
+  "author": "John Zhou",
+  "license": "Apache-2.0",
+  "keywords": [
+    "earth-observation",
+    "environmental-monitoring",
+    "nasa-eonet",
+    "3d-globe",
+    "nextjs",
+    "typescript",
+    "threejs",
+    "wildfire-tracking",
+    "data-visualization"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jzjzzzzzzz/PlanetPulse"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
+    "lucide-react": "^1.24.0",
     "next": "16.2.10",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "react-globe.gl": "^2.38.0",
+    "three": "^0.185.1",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/three": "^0.185.1",
+    "@vitejs/plugin-react": "^6.0.3",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.10"
   }
 }

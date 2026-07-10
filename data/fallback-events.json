@@ -1,0 +1,177 @@
+{
+  "_note": "Static fallback dataset for development use only. Not live NASA data.",
+  "_generated": "2026-07-10",
+  "_source": "Sample data derived from public NASA EONET event categories",
+  "events": [
+    {
+      "id": "fallback-001",
+      "title": "Wildfire near Los Angeles County",
+      "category": "wildfire",
+      "latitude": 34.2,
+      "longitude": -118.3,
+      "startedAt": "2026-07-08T12:00:00Z",
+      "updatedAt": "2026-07-10T08:00:00Z",
+      "sourceName": "InciWeb / USGS",
+      "sourceUrl": "https://inciweb.wildfire.gov/",
+      "geometryType": "Point",
+      "magnitudeValue": 15000,
+      "magnitudeUnit": "acres",
+      "hotspotScore": 85,
+      "scoreExplanation": [
+        "Active wildfire event",
+        "Updated within the last 12 hours",
+        "Magnitude data available",
+        "Multiple recent observations",
+        "Severe fire conditions"
+      ]
+    },
+    {
+      "id": "fallback-002",
+      "title": "Tropical Cyclone in Western Pacific",
+      "category": "severe-storm",
+      "latitude": 14.5,
+      "longitude": 128.7,
+      "startedAt": "2026-07-05T00:00:00Z",
+      "updatedAt": "2026-07-10T14:00:00Z",
+      "sourceName": "Joint Typhoon Warning Center",
+      "sourceUrl": "https://www.metoc.navy.mil/jtwc/jtwc.html",
+      "geometryType": "Point",
+      "magnitudeValue": 120,
+      "magnitudeUnit": "knots",
+      "hotspotScore": 92,
+      "scoreExplanation": [
+        "Active severe storm event",
+        "Updated within the last 6 hours",
+        "Magnitude data available",
+        "Multiple recent observations",
+        "Category 4 equivalent"
+      ]
+    },
+    {
+      "id": "fallback-003",
+      "title": "Eruption at Kilauea Volcano",
+      "category": "volcano",
+      "latitude": 19.421,
+      "longitude": -155.287,
+      "startedAt": "2026-06-28T00:00:00Z",
+      "updatedAt": "2026-07-10T06:00:00Z",
+      "sourceName": "USGS Hawaiian Volcano Observatory",
+      "sourceUrl": "https://www.usgs.gov/volcanoes/kilauea",
+      "geometryType": "Point",
+      "magnitudeValue": 3,
+      "magnitudeUnit": "VEI",
+      "hotspotScore": 78,
+      "scoreExplanation": [
+        "Active volcano event",
+        "Updated within the last 12 hours",
+        "Magnitude data available",
+        "Sustained eruptive activity"
+      ]
+    },
+    {
+      "id": "fallback-004",
+      "title": "Severe Flooding in Bangladesh",
+      "category": "flood",
+      "latitude": 23.685,
+      "longitude": 90.356,
+      "startedAt": "2026-07-03T00:00:00Z",
+      "updatedAt": "2026-07-09T18:00:00Z",
+      "sourceName": "FloodList / GDACS",
+      "sourceUrl": "https://www.gdacs.org/",
+      "geometryType": "Polygon",
+      "magnitudeValue": 50000,
+      "magnitudeUnit": "hectares",
+      "hotspotScore": 72,
+      "scoreExplanation": [
+        "Active flood event",
+        "Updated within the last 24 hours",
+        "Magnitude data available",
+        "Widespread inundation reported"
+      ]
+    },
+    {
+      "id": "fallback-005",
+      "title": "Dust Storm over the Sahara",
+      "category": "dust-haze",
+      "latitude": 20.3,
+      "longitude": 3.8,
+      "startedAt": "2026-07-09T00:00:00Z",
+      "updatedAt": "2026-07-10T10:00:00Z",
+      "sourceName": "NASA Worldview",
+      "sourceUrl": "https://worldview.earthdata.nasa.gov/",
+      "geometryType": "Polygon",
+      "magnitudeValue": null,
+      "magnitudeUnit": null,
+      "hotspotScore": 45,
+      "scoreExplanation": [
+        "Active dust & haze event",
+        "Updated within the last 6 hours",
+        "Magnitude data unavailable",
+        "Seasonal Saharan dust transport"
+      ]
+    },
+    {
+      "id": "fallback-006",
+      "title": "Landslide in Northern India",
+      "category": "landslide",
+      "latitude": 30.7,
+      "longitude": 79.1,
+      "startedAt": "2026-07-07T00:00:00Z",
+      "updatedAt": "2026-07-09T12:00:00Z",
+      "sourceName": "NASA EONET",
+      "sourceUrl": "https://eonet.gsfc.nasa.gov/",
+      "geometryType": "Point",
+      "magnitudeValue": null,
+      "magnitudeUnit": null,
+      "hotspotScore": 52,
+      "scoreExplanation": [
+        "Active landslide event",
+        "Updated within the last 48 hours",
+        "Magnitude data unavailable",
+        "Monsoon-related slope failure"
+      ]
+    },
+    {
+      "id": "fallback-007",
+      "title": "Severe Drought in East Africa",
+      "category": "drought",
+      "latitude": -2.0,
+      "longitude": 38.0,
+      "startedAt": "2026-06-01T00:00:00Z",
+      "updatedAt": "2026-07-08T00:00:00Z",
+      "sourceName": "UN OCHA / ReliefWeb",
+      "sourceUrl": "https://reliefweb.int/",
+      "geometryType": "Polygon",
+      "magnitudeValue": 4,
+      "magnitudeUnit": "SPI",
+      "hotspotScore": 65,
+      "scoreExplanation": [
+        "Active drought event",
+        "Updated within the last 72 hours",
+        "Magnitude data available",
+        "Multi-season rainfall deficit"
+      ]
+    },
+    {
+      "id": "fallback-008",
+      "title": "Antarctic Sea Ice Minimum",
+      "category": "sea-lake-ice",
+      "latitude": -78.0,
+      "longitude": -100.0,
+      "startedAt": "2026-07-01T00:00:00Z",
+      "updatedAt": "2026-07-10T00:00:00Z",
+      "sourceName": "NSIDC",
+      "sourceUrl": "https://nsidc.org/",
+      "geometryType": "Polygon",
+      "magnitudeValue": 5.2,
+      "magnitudeUnit": "million sq km",
+      "hotspotScore": 58,
+      "scoreExplanation": [
+        "Active sea & lake ice event",
+        "Updated within the last 24 hours",
+        "Magnitude data available",
+        "Below-average winter extent"
+      ]
+    }
+  ]
+}
