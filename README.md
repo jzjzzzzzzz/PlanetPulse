@@ -8,6 +8,7 @@
 [![CI](https://github.com/jzjzzzzzzz/PlanetPulse/actions/workflows/ci.yml/badge.svg)](https://github.com/jzjzzzzzzz/PlanetPulse/actions/workflows/ci.yml)
 
 **Live Demo:** [planet-pulse-eta.vercel.app](https://planet-pulse-eta.vercel.app)
+**Video Demo:** [YouTube - Planet Pulse Walkthrough](https://youtu.be/RFy7bojIiLs)
 
 ---
 
