@@ -98,7 +98,10 @@ export type EonetEventsResult = {
 // ============================================================
 
 const EONET_API_URL =
-  "https://eonet.gsfc.nasa.gov/api/v3/events?status=open&days=30&limit=200";
+  "https://eonet.gsfc.nasa.gov/api/v3/events?status=open&days=60&limit=500";
+
+const EONET_CLOSED_URL =
+  "https://eonet.gsfc.nasa.gov/api/v3/events?status=closed&days=7&limit=100";
 
 const EONET_API_TIMEOUT_MS = 15_000;
 

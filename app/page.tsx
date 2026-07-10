@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, Suspense } from "react";
 import dynamic from "next/dynamic";
+import { useSearchParams } from "next/navigation";
 import type { EnvironmentalEvent, EventCategory, UserLocation } from "@/types/environment";
 import { computePersonalRelevance } from "@/lib/scoring/personal-relevance";
 import { haversineDistance } from "@/lib/geo/distance";
@@ -15,6 +16,8 @@ import GlobeLegend from "@/components/globe/GlobeLegend";
 import EventDetails from "@/components/events/EventDetails";
 import ObservationTimeline from "@/components/events/ObservationTimeline";
 import EpicSatellite from "@/components/events/EpicSatellite";
+import ThemeToggle from "@/components/ui/ThemeToggle";
+import { Share2 } from "lucide-react";
 
 // Dynamic import for the globe — no SSR
 const EnvironmentalGlobe = dynamic(
@@ -51,6 +54,7 @@ export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState<EventCategory | "all">("all");
   const [refreshIn, setRefreshIn] = useState(60);
   const [jumpToObs, setJumpToObs] = useState<{ lat: number; lng: number } | null>(null);
+  const [copied, setCopied] = useState(false);
 
   // --- Fetch events (extracted for reuse) ---
   const fetchEvents = useCallback(async () => {
@@ -141,7 +145,36 @@ export default function Home() {
   }, [events]);
 
   // --- Handlers ---
-  const handleSelectEvent = useCallback((e: EnvironmentalEvent | null) => setSelectedEventId(e?.id ?? null), []);
+  const searchParams = useSearchParams();
+  
+  const handleSelectEvent = useCallback((e: EnvironmentalEvent | null) => {
+    setSelectedEventId(e?.id ?? null);
+    // Update URL for sharing
+    if (e?.id) {
+      window.history.replaceState(null, "", `?event=${e.id}`);
+    } else {
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, []);
+
+  const handleShareEvent = useCallback(() => {
+    if (selectedEventId) {
+      const url = `${window.location.origin}?event=${selectedEventId}`;
+      navigator.clipboard.writeText(url).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }).catch(() => {});
+    }
+  }, [selectedEventId]);
+
+  // Load event from URL on mount
+  useEffect(() => {
+    const eventId = searchParams.get("event");
+    if (eventId && events.length > 0) {
+      const evt = events.find((e) => e.id === eventId);
+      if (evt) setSelectedEventId(evt.id);
+    }
+  }, [searchParams, events]);
   const handleCloseEvent = useCallback(() => setSelectedEventId(null), []);
   const selectedEvent = useMemo(() => selectedEventId ? events.find(e => e.id === selectedEventId) ?? null : null, [events, selectedEventId]);
 
@@ -169,7 +202,35 @@ export default function Home() {
 
       <ObservationTimeline event={selectedEvent} onJumpTo={(obs) => setJumpToObs({ lat: obs.latitude, lng: obs.longitude })} />
 
-      <EpicSatellite />
+      <EpicSatellite lat={selectedEvent?.latitude ?? null} lng={selectedEvent?.longitude ?? null} />
+
+      <ThemeToggle />
+
+      {/* Share button — only when event selected */}
+      {selectedEventId && (
+        <button
+          onClick={handleShareEvent}
+          style={{
+            position: "fixed", top: 44, left: 56, zIndex: 100,
+            width: 34, height: 34, borderRadius: 8,
+            border: "1px solid var(--color-border)",
+            background: "var(--color-bg-glass)",
+            backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
+            color: "var(--color-text-secondary)", cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}
+          title="Copy share link"
+          aria-label="Copy share link"
+        >
+          <Share2 size={14} strokeWidth={1.5} />
+        </button>
+      )}
+
+      {copied && (
+        <div style={{ position: "fixed", top: 44, left: 96, zIndex: 100, background: "var(--color-bg-panel)", border: "1px solid var(--color-border)", borderRadius: 6, padding: "6px 12px", fontSize: 11, color: "var(--color-success)" }}>
+          Link copied!
+        </div>
+      )}
 
       <TopStatusBar localTime={localTime} dataStatus={dataSource === "offline" ? "offline" : dataSource === "fallback" ? "stale" : "live"} isFallbackData={dataSource === "fallback"} eventsCount={events.length} lastUpdated={lastUpdated} refreshIn={refreshIn} onRefresh={handleRefresh} onOpenInfo={() => setShowInfo(!showInfo)} />
 

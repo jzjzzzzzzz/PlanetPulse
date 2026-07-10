@@ -78,6 +78,7 @@ body {
   overflow: hidden;
   height: 100dvh;
   width: 100vw;
+  transition: background-color 0.3s ease;
 }
 
 /* ---- Star field background ---- */
@@ -200,6 +201,27 @@ body::after {
   letter-spacing: 0.04em;
   border: 1px solid currentColor;
   opacity: 0.9;
+}
+
+/* ---- Light mode ---- */
+html:not(.dark) {
+  --color-bg-deep: #e8ecf1;
+  --color-bg-panel: rgba(255, 255, 255, 0.85);
+  --color-bg-panel-hover: rgba(240, 242, 245, 0.92);
+  --color-bg-glass: rgba(255, 255, 255, 0.6);
+
+  --color-text-primary: #1a1d23;
+  --color-text-secondary: #4a5568;
+  --color-text-muted: #8896a6;
+  --color-text-inverse: #f4f7fb;
+
+  --color-border: rgba(0, 0, 0, 0.1);
+  --color-border-hover: rgba(0, 0, 0, 0.2);
+}
+
+html:not(.dark) body::before,
+html:not(.dark) body::after {
+  display: none;
 }
 
 /* ---- Reduced motion ---- */

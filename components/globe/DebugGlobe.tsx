@@ -6,81 +6,47 @@ import { Plus, Minus, RotateCcw, MapPin, Play, Pause } from "lucide-react";
 import type { EnvironmentalEvent } from "@/types/environment";
 import { CATEGORY_COLORS_HEX } from "@/types/environment";
 
-// ============================================================
-// Types
-// ============================================================
+type MarkerData = { id: string; lat: number; lng: number; color: string; size: number; title: string; isUser: boolean; };
+type Props = { events: EnvironmentalEvent[]; selectedEventId: string | null; onSelectEvent: (e: EnvironmentalEvent | null) => void; userLat?: number | null; userLng?: number | null; nearestEvent?: EnvironmentalEvent | null; jumpToObs?: { lat: number; lng: number } | null; };
 
-type MarkerData = {
-  id: string;
-  lat: number;
-  lng: number;
-  color: string;
-  size: number;
-  title: string;
-  isUser: boolean;
-};
-
-type Props = {
-  events: EnvironmentalEvent[];
-  selectedEventId: string | null;
-  onSelectEvent: (event: EnvironmentalEvent | null) => void;
-  userLat?: number | null;
-  userLng?: number | null;
-  nearestEvent?: EnvironmentalEvent | null;
-  jumpToObs?: { lat: number; lng: number } | null;
-};
-
-// ============================================================
-// Constants
-// ============================================================
-
-const MAX_MARKERS = 200;
+const MAX_MARKERS = 500;
 const FALLBACK_COLOR = "#8D9AAF";
 const USER_COLOR = "#45A3FF";
 
-const btn: React.CSSProperties = {
-  display: "flex", alignItems: "center", justifyContent: "center",
-  width: 32, height: 32, borderRadius: 8,
-  border: "1px solid var(--color-border)",
-  background: "var(--color-bg-glass)",
-  color: "var(--color-text-secondary)",
-  cursor: "pointer",
-  backdropFilter: "blur(8px)",
-  WebkitBackdropFilter: "blur(8px)",
-  fontSize: 10, fontWeight: 600,
-};
+const btn: React.CSSProperties = { display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 8, border: "1px solid var(--color-border)", background: "var(--color-bg-glass)", color: "var(--color-text-secondary)", cursor: "pointer", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" };
 
-// ============================================================
-// Component
-// ============================================================
-
-export default function DebugGlobe({
-  events, selectedEventId, onSelectEvent, userLat, userLng, nearestEvent, jumpToObs,
-}: Props) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+export default function DebugGlobe({ events, selectedEventId, onSelectEvent, userLat, userLng, nearestEvent, jumpToObs }: Props) {
   const globeEl = useRef<any>(null);
   const [ready, setReady] = useState(false);
   const [autoRotate, setAutoRotate] = useState(false);
   const altRef = useRef(2.5);
   const rotRef = useRef(0);
   const animRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Theme detection
+  const [isDark, setIsDark] = useState(true);
+  useEffect(() => {
+    const check = () => setIsDark(document.documentElement.classList.contains("dark"));
+    check();
+    const obs = new MutationObserver(check);
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => obs.disconnect();
+  }, []);
 
   const eventsRef = useRef(events);
   const onSelectRef = useRef(onSelectEvent);
-
-  // Sync refs in effect, not during render
   useEffect(() => { eventsRef.current = events; }, [events]);
   useEffect(() => { onSelectRef.current = onSelectEvent; }, [onSelectEvent]);
 
   const handleReady = useCallback(() => setReady(true), []);
 
+  const bgColor = isDark ? "#0a1226" : "#d5dbe3";
+
   // ---- Auto-rotation ----
   const startAutoRotate = useCallback(() => {
     if (animRef.current) return;
-    animRef.current = setInterval(() => {
-      rotRef.current = (rotRef.current + 0.15) % 360;
-      try { globeEl.current?.pointOfView({ lng: rotRef.current }, 0); } catch { /* */ }
-    }, 50);
+    animRef.current = setInterval(() => { rotRef.current = (rotRef.current + 0.15) % 360; try { globeEl.current?.pointOfView({ lng: rotRef.current }, 0); } catch { /* */ } }, 50);
     setAutoRotate(true);
   }, []);
 
@@ -89,32 +55,39 @@ export default function DebugGlobe({
     setAutoRotate(false);
   }, []);
 
-  const toggleAutoRotate = useCallback(() => {
-    if (autoRotate) stopAutoRotate(); else startAutoRotate();
-  }, [autoRotate, startAutoRotate, stopAutoRotate]);
+  const resetIdleTimer = useCallback(() => {
+    stopAutoRotate();
+    if (idleTimer.current) clearTimeout(idleTimer.current);
+    idleTimer.current = setTimeout(() => startAutoRotate(), 3000);
+  }, [stopAutoRotate, startAutoRotate]);
 
-  useEffect(() => () => { if (animRef.current) clearInterval(animRef.current); }, []);
+  // Start auto-rotate on mount, restart on idle
+  useEffect(() => {
+    if (!ready) return;
+    idleTimer.current = setTimeout(() => startAutoRotate(), 3000);
+    return () => { if (idleTimer.current) clearTimeout(idleTimer.current); if (animRef.current) clearInterval(animRef.current); };
+  }, [ready, startAutoRotate]);
 
   // ---- Camera Controls ----
   const zoomIn = useCallback(() => {
+    resetIdleTimer();
     altRef.current = Math.max(0.8, altRef.current * 0.65);
     try { globeEl.current?.pointOfView({ altitude: altRef.current }, 400); } catch { /* */ }
-  }, []);
+  }, [resetIdleTimer]);
 
   const zoomOut = useCallback(() => {
+    resetIdleTimer();
     altRef.current = Math.min(8.0, altRef.current * 1.5);
     try { globeEl.current?.pointOfView({ altitude: altRef.current }, 400); } catch { /* */ }
-  }, []);
+  }, [resetIdleTimer]);
 
   const resetView = useCallback(() => {
-    stopAutoRotate();
-    altRef.current = 2.5;
-    rotRef.current = 0;
+    altRef.current = 2.5; rotRef.current = 0;
     try { globeEl.current?.pointOfView({ lat: 20, lng: 0, altitude: 2.5 }, 800); } catch { /* */ }
-  }, [stopAutoRotate]);
+    resetIdleTimer();
+  }, [resetIdleTimer]);
 
   const focusUser = useCallback(() => {
-    stopAutoRotate();
     if (nearestEvent) {
       onSelectRef.current(nearestEvent);
       altRef.current = 1.6;
@@ -123,23 +96,22 @@ export default function DebugGlobe({
       altRef.current = 1.6;
       try { globeEl.current?.pointOfView({ lat: userLat, lng: userLng, altitude: 1.6 }, 800); } catch { /* */ }
     }
-  }, [nearestEvent, userLat, userLng, stopAutoRotate]);
+    resetIdleTimer();
+  }, [nearestEvent, userLat, userLng, resetIdleTimer]);
 
   // ---- Camera fly-to on selection ----
   useEffect(() => {
     if (!ready || !selectedEventId || !globeEl.current) return;
     const event = events.find((e) => e.id === selectedEventId);
     if (!event) return;
-    // Stop rotation directly without setState
     if (animRef.current) { clearInterval(animRef.current); animRef.current = null; }
-    const t = setTimeout(() => {
-      altRef.current = 1.6;
-      try { globeEl.current?.pointOfView({ lat: event.latitude, lng: event.longitude, altitude: 1.6 }, 800); } catch { /* */ }
-    }, 100);
+    setAutoRotate(false);
+    if (idleTimer.current) clearTimeout(idleTimer.current);
+    const t = setTimeout(() => { altRef.current = 1.6; try { globeEl.current?.pointOfView({ lat: event.latitude, lng: event.longitude, altitude: 1.6 }, 800); } catch { /* */ } }, 100);
     return () => clearTimeout(t);
   }, [selectedEventId, events, ready]);
 
-  // ---- Jump to observation position ----
+  // ---- Jump to observation ----
   useEffect(() => {
     if (!ready || !jumpToObs || !globeEl.current) return;
     altRef.current = 1.6;
@@ -150,48 +122,35 @@ export default function DebugGlobe({
   const historyPath = useMemo(() => {
     if (!selectedEventId) return [];
     const event = events.find((e) => e.id === selectedEventId);
-    if (!event || !event.observations || event.observations.length < 2) return [];
+    if (!event?.observations || event.observations.length < 2) return [];
     const color = CATEGORY_COLORS_HEX[event.category] ?? FALLBACK_COLOR;
-    const pts = event.observations
-      .filter((o) => o.latitude != null && o.longitude != null && !Number.isNaN(o.latitude) && !Number.isNaN(o.longitude))
-      .slice(-30);
+    const pts = event.observations.filter((o) => o.latitude != null && o.longitude != null && !Number.isNaN(o.latitude) && !Number.isNaN(o.longitude)).slice(-30);
     if (pts.length < 2) return [];
-    const coords = pts.map((o) => [o.latitude, o.longitude] as [number, number]);
-    return [{ coords, color }];
+    return [{ coords: pts.map((o) => [o.latitude, o.longitude] as [number, number]), color }];
   }, [events, selectedEventId]);
 
-  // ---- Build markers (events + user location) ----
+  // ---- Build markers (with density control) ----
   const allMarkers: MarkerData[] = useMemo(() => {
-    const markers: MarkerData[] = [];
-
-    // User location
-    if (userLat != null && userLng != null) {
-      markers.push({ id: "user-loc", lat: userLat, lng: userLng, color: USER_COLOR, size: 12, title: "Your location", isUser: true });
-    }
-
-    // Events
+    const m: MarkerData[] = [];
+    if (userLat != null && userLng != null) m.push({ id: "user-loc", lat: userLat, lng: userLng, color: USER_COLOR, size: 12, title: "Your location", isUser: true });
     if (events.length) {
-      const evts = [...events].sort((a, b) => b.hotspotScore - a.hotspotScore).slice(0, MAX_MARKERS);
-      for (const e of evts) {
-        markers.push({
-          id: e.id, lat: e.latitude, lng: e.longitude,
-          color: CATEGORY_COLORS_HEX[e.category] ?? FALLBACK_COLOR,
-          size: Math.round(6 + (e.hotspotScore / 100) * 8),
-          title: e.title, isUser: false,
-        });
+      const sorted = [...events].sort((a, b) => b.hotspotScore - a.hotspotScore);
+      // Show all if zoomed close, filter low-score when zoomed far
+      const alt = altRef.current;
+      const minScore = alt > 4 ? 50 : alt > 3 ? 30 : 0;
+      const filtered = sorted.filter((e) => e.hotspotScore >= minScore).slice(0, MAX_MARKERS);
+      for (const e of filtered) {
+        m.push({ id: e.id, lat: e.latitude, lng: e.longitude, color: CATEGORY_COLORS_HEX[e.category] ?? FALLBACK_COLOR, size: Math.round(6 + (e.hotspotScore / 100) * 8), title: e.title, isUser: false });
       }
     }
-    return markers;
+    return m;
   }, [events, userLat, userLng]);
 
-  // ---- Create marker DOM element ----
   const createMarkerElement = useCallback((d: object): HTMLElement => {
     const m = d as MarkerData;
     const el = document.createElement("div");
     const isSelected = m.id === selectedEventId;
-
-    el.style.width = `${m.size}px`;
-    el.style.height = `${m.size}px`;
+    el.style.width = `${m.size}px`; el.style.height = `${m.size}px`;
     el.style.borderRadius = m.isUser ? "2px" : "50%";
     el.style.background = m.color;
     el.style.boxShadow = `0 0 ${m.size * 2}px ${m.color}${m.isUser ? "AA" : "88"}`;
@@ -200,59 +159,37 @@ export default function DebugGlobe({
     el.style.pointerEvents = "auto";
     if (m.isUser) el.style.transform = "rotate(45deg)";
     el.title = m.title;
-
-    if (isSelected && !m.isUser) {
-      el.style.border = "2px solid #F4F7FB";
-      el.style.transform = "scale(1.5)";
-      el.style.zIndex = "2";
-    }
-
-    el.addEventListener("click", (e: MouseEvent) => {
-      e.stopPropagation();
-      if (m.isUser) {
-        focusUser();
-        return;
-      }
-      const evt = eventsRef.current.find((ev) => ev.id === m.id);
-      if (evt) onSelectRef.current(evt);
-    });
-
+    if (isSelected && !m.isUser) { el.style.border = "2px solid #F4F7FB"; el.style.transform = "scale(1.5)"; el.style.zIndex = "2"; }
+    el.addEventListener("click", (e: MouseEvent) => { e.stopPropagation(); if (m.isUser) { focusUser(); return; } const evt = eventsRef.current.find((ev) => ev.id === m.id); if (evt) onSelectRef.current(evt); });
     return el;
   }, [selectedEventId, focusUser]);
 
-  const handleGlobeClick = useCallback(() => onSelectRef.current(null), []);
+  const handleGlobeClick = useCallback(() => { onSelectRef.current(null); resetIdleTimer(); }, [resetIdleTimer]);
 
   return (
     <>
-      {/* Globe */}
-      <div suppressHydrationWarning style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100dvh", zIndex: 1, background: "#0a1226" }}>
+      <div suppressHydrationWarning style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100dvh", zIndex: 1, background: bgColor }}>
         <GlobeGL
           ref={globeEl}
           globeImageUrl="/textures/earth-light.jpg"
-          backgroundColor="#0a1226"
-          atmosphereColor="#5599DD"
+          backgroundColor={bgColor}
+          atmosphereColor={isDark ? "#5599DD" : "#3388CC"}
           atmosphereAltitude={0.3}
           htmlElementsData={allMarkers}
           htmlElement={createMarkerElement}
           onGlobeClick={handleGlobeClick}
           onGlobeReady={handleReady}
           enablePointerInteraction
-          // Observation history path
-          pathsData={historyPath.length > 0 ? (() => { const [p] = historyPath; return [{ coords: p.coords, color: p.color }]; })() : []}
+          pathsData={historyPath.length > 0 ? [historyPath[0]] : []}
           pathPoints="coords"
           pathPointLat={(p: unknown) => (p as [number, number])[0]}
           pathPointLng={(p: unknown) => (p as [number, number])[1]}
           pathPointAlt={0.02}
           pathColor={(d: object) => (d as { color: string }).color}
-          pathStroke={1.5}
-          pathDashLength={0.04}
-          pathDashGap={0.03}
-          pathDashAnimateTime={8000}
-          pathTransitionDuration={500}
+          pathStroke={1.5} pathDashLength={0.04} pathDashGap={0.03} pathDashAnimateTime={8000} pathTransitionDuration={500}
         />
       </div>
 
-      {/* Controls */}
       <div style={{ position: "fixed", bottom: 16, right: 16, zIndex: 50, display: "flex", flexDirection: "column", gap: 4 }}>
         <button style={btn} onClick={zoomIn} title="Zoom in" aria-label="Zoom in"><Plus size={15} strokeWidth={1.5} /></button>
         <button style={btn} onClick={zoomOut} title="Zoom out" aria-label="Zoom out"><Minus size={15} strokeWidth={1.5} /></button>
@@ -260,7 +197,7 @@ export default function DebugGlobe({
         <button style={btn} onClick={resetView} title="Reset view" aria-label="Reset view"><RotateCcw size={14} strokeWidth={1.5} /></button>
         <button style={btn} onClick={focusUser} title="Nearest event" aria-label="Nearest event"><MapPin size={14} strokeWidth={1.5} /></button>
         <div style={{ height: 1, margin: "1px 4px", background: "var(--color-border)" }} />
-        <button style={btn} onClick={toggleAutoRotate} title={autoRotate ? "Pause rotation" : "Auto rotate"} aria-label={autoRotate ? "Pause" : "Play"}>
+        <button style={btn} onClick={autoRotate ? stopAutoRotate : () => { resetIdleTimer(); startAutoRotate(); }} title={autoRotate ? "Pause rotation" : "Auto rotate"} aria-label={autoRotate ? "Pause" : "Play"}>
           {autoRotate ? <Pause size={14} strokeWidth={1.5} /> : <Play size={14} strokeWidth={1.5} />}
         </button>
       </div>
