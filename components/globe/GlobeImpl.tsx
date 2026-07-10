@@ -121,7 +121,8 @@ const GlobeImpl = forwardRef<EnvironmentalGlobeRef, GlobeImplProps>(
     ref,
   ) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const globeEl = useRef<any>(null!);
+    const globeEl = useRef<any>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
     const [hasInteracted, setHasInteracted] = useState(false);
     const [globeReady, setGlobeReady] = useState(false);
     const autoRotateRef = useRef(true);
@@ -134,10 +135,6 @@ const GlobeImpl = forwardRef<EnvironmentalGlobeRef, GlobeImplProps>(
     onSelectRef.current = onSelectEvent;
     const onHoverRef = useRef(onHoverEvent);
     onHoverRef.current = onHoverEvent;
-    const selectedIdRef = useRef(selectedEventId);
-    selectedIdRef.current = selectedEventId;
-    const hoveredIdRef = useRef(hoveredEventId);
-    hoveredIdRef.current = hoveredEventId;
 
     // ---- Reduced motion detection ----
     useEffect(() => {
@@ -301,6 +298,13 @@ const GlobeImpl = forwardRef<EnvironmentalGlobeRef, GlobeImplProps>(
       [userLabel, labelData],
     );
 
+    // ---- History path data ----
+    const historyPathData = useMemo(() => {
+      if (!historyArcs.length || historyArcs.length < 2) return [];
+      const coords = historyArcs.map((p) => [p.lat, p.lng] as [number, number]);
+      return [{ coords, color: historyArcs[0].color }];
+    }, [historyArcs]);
+
     // ---- Fly to selected event ----
     useEffect(() => {
       if (!globeEl.current || !selectedEventId || !globeReady) return;
@@ -311,7 +315,6 @@ const GlobeImpl = forwardRef<EnvironmentalGlobeRef, GlobeImplProps>(
         ? FOCUS_DURATION_REDUCED_MS
         : FOCUS_DURATION_MS;
 
-      // Cancel any in-flight animation
       const timer = setTimeout(() => {
         try {
           globeEl.current?.pointOfView?.(
@@ -422,7 +425,7 @@ const GlobeImpl = forwardRef<EnvironmentalGlobeRef, GlobeImplProps>(
 
     // ---- Interaction handlers ----
     const handleGlobeClick = useCallback(
-      (point: object | null) => {
+      (point: object | null | undefined) => {
         setHasInteracted(true);
         if (!point) {
           onSelectRef.current(null);
@@ -463,39 +466,44 @@ const GlobeImpl = forwardRef<EnvironmentalGlobeRef, GlobeImplProps>(
     const pointColorAccessor = useCallback(
       (d: object) => {
         const p = d as PointData;
-        // Dim low-score events to reduce visual noise
         if (!p.isUser && p.severityTier === "low" && !p.isSelected) {
           return LOW_SCORE_COLOR;
         }
-        return p.color;
+        return p.color ?? LOW_SCORE_COLOR;
       },
       [],
     );
 
-    // ---- History paths for selected event ----
-    const historyPathData = useMemo(() => {
-      if (!historyArcs.length || historyArcs.length < 2) return [];
-      // Build a single path object with coords array
-      const coords = historyArcs.map((p) => [p.lat, p.lng] as [number, number]);
-      return [{ coords, color: historyArcs[0].color }];
-    }, [historyArcs]);
+    // ============================================================
+    // Render — minimal props, no experimental/unstable ones
+    // ============================================================
 
-    // ============================================================
-    // Render
-    // ============================================================
+    // Only pass path props when there is data
+    const pathProps = historyPathData.length > 0 ? {
+      pathsData: historyPathData,
+      pathPoints: "coords" as string,
+      pathPointLat: (p: object) => (p as [number, number])[0],
+      pathPointLng: (p: object) => (p as [number, number])[1],
+      pathPointAlt: 0.02,
+      pathColor: (d: object) => (d as { color: string }).color ?? "#8D9AAF",
+      pathStroke: 1,
+      pathDashLength: 0.03,
+      pathDashGap: 0.02,
+      pathDashAnimateTime: 6000,
+      pathTransitionDuration: 400,
+    } : {};
 
     return (
       <div
+        ref={containerRef}
         id="globe-container"
         style={{
           position: "fixed",
           inset: 0,
           zIndex: 1,
           background: "transparent",
-          // Prevent accidental text selection on drag
           userSelect: "none",
           WebkitUserSelect: "none",
-          touchAction: "none",
         }}
       >
         <GlobeGL
@@ -511,7 +519,6 @@ const GlobeImpl = forwardRef<EnvironmentalGlobeRef, GlobeImplProps>(
           pointColor={pointColorAccessor}
           pointAltitude="altitude"
           pointRadius="radius"
-          pointResolution={16}
           // Animated rings
           ringsData={allRings}
           ringLat="lat"
@@ -520,7 +527,6 @@ const GlobeImpl = forwardRef<EnvironmentalGlobeRef, GlobeImplProps>(
           ringMaxRadius="maxRadius"
           ringPropagationSpeed="propagationSpeed"
           ringRepeatPeriod="repeatPeriod"
-          ringResolution={48}
           // Labels
           labelsData={allLabels}
           labelLat="lat"
@@ -529,25 +535,13 @@ const GlobeImpl = forwardRef<EnvironmentalGlobeRef, GlobeImplProps>(
           labelColor="color"
           labelSize="size"
           labelAltitude="altitude"
-          labelDotRadius={0}
-          labelResolution={3}
           // Interaction
           onGlobeClick={handleGlobeClick}
-          onPointHover={handleGlobeHover as (point: object | null, prevPoint: object | null) => void}
+          onPointHover={handleGlobeHover}
           onGlobeReady={handleGlobeReady}
           enablePointerInteraction
-          // Observation history paths (selected event)
-          pathsData={historyPathData}
-          pathPoints="coords"
-          pathPointLat={(p) => (p as [number, number])[0]}
-          pathPointLng={(p) => (p as [number, number])[1]}
-          pathPointAlt={0.02}
-          pathColor={(d: object) => (d as { color: string }).color}
-          pathStroke={1}
-          pathDashLength={0.03}
-          pathDashGap={0.02}
-          pathDashAnimateTime={6000}
-          pathTransitionDuration={400}
+          // Paths (only when data exists)
+          {...pathProps}
         />
       </div>
     );
