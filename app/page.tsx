@@ -15,6 +15,7 @@ import GlobeControls from "@/components/globe/GlobeControls";
 import GlobeLegend from "@/components/globe/GlobeLegend";
 import GlobeHoverTooltip from "@/components/globe/GlobeHoverTooltip";
 import type { EnvironmentalGlobeRef } from "@/components/globe/GlobeImpl";
+import ClientOnly from "@/components/ui/ClientOnly";
 
 // Dynamic import for the globe — no SSR, empty loading fallback avoids hydration mismatch
 const EnvironmentalGlobe = dynamic(
@@ -288,6 +289,7 @@ export default function Home() {
   const hasUserLocation = effectiveLat != null && effectiveLng != null;
 
   return (
+    <ClientOnly>
     <div style={{ height: "100dvh", width: "100vw", position: "relative", overflow: "hidden" }}>
       {/* --- Globe --- */}
       <EnvironmentalGlobe
@@ -532,5 +534,6 @@ export default function Home() {
         </div>
       )}
     </div>
+    </ClientOnly>
   );
 }
