@@ -57,6 +57,16 @@ export default function TyphoonPage() {
     fetchData();
   }, [fetchData]);
 
+  // Fix body overflow for scrolling
+  useEffect(() => {
+    document.body.style.overflow = "auto";
+    document.body.style.height = "auto";
+    return () => {
+      document.body.style.overflow = "";
+      document.body.style.height = "";
+    };
+  }, []);
+
   // Auto refresh countdown
   useEffect(() => {
     const countdown = setInterval(() => {

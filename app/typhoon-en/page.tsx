@@ -135,6 +135,16 @@ export default function TyphoonEnPage() {
     finally { setLoading(false); if (isManual) setRefreshIn(REFRESH_INTERVAL); }
   }, []);
 
+  // Fix body overflow — root layout sets overflow-hidden, undo for this page
+  useEffect(() => {
+    document.body.style.overflow = "auto";
+    document.body.style.height = "auto";
+    return () => {
+      document.body.style.overflow = "";
+      document.body.style.height = "";
+    };
+  }, []);
+
   useEffect(() => { fetchData(); }, [fetchData]);
 
   useEffect(() => {
@@ -188,7 +198,7 @@ export default function TyphoonEnPage() {
       <main style={{ display: "flex", flexDirection: "column" }}>
         {/* MAP */}
         <div style={{ height: "50vh", minHeight: 350, position: "relative" }}>
-          <TyphoonMap data={data} selectedPoint={selectedPoint} onPointSelect={setSelectedPoint} />
+          <TyphoonMap data={data} selectedPoint={selectedPoint} onPointSelect={setSelectedPoint} lang="en" />
           <div style={{ position: "absolute", bottom: 4, right: 4, zIndex: 1000, fontSize: 9, color: "rgba(255,255,255,0.5)", background: "rgba(0,0,0,0.6)", padding: "2px 6px", borderRadius: 3, pointerEvents: "none" }}>
             &copy; JMA | &copy; OpenStreetMap | CartoDB dark_all
           </div>
