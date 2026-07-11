@@ -2,7 +2,8 @@
 import React, { useMemo } from "react";
 import type { EnvironmentalEvent } from "@/types/environment";
 import { CATEGORY_LABELS, CATEGORY_COLORS } from "@/types/environment";
-import { TrendingUp } from "lucide-react";
+import { TrendingUp, ExternalLink } from "lucide-react";
+import Link from "next/link";
 
 type HotspotPanelProps = {
   events: EnvironmentalEvent[];
@@ -163,6 +164,14 @@ export default function HotspotPanel({
                     >
                       {Math.round(score)}
                     </span>
+                    <Link
+                      href={`/event/${event.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                      style={{ color: "var(--color-text-muted)", display: "flex", alignItems: "center" }}
+                      title="View event details"
+                    >
+                      <ExternalLink size={10} strokeWidth={1.5} />
+                    </Link>
                   </div>
                 </div>
               </button>
