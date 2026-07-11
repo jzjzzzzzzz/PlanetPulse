@@ -7,7 +7,7 @@ import type { EnvironmentalEvent } from "@/types/environment";
 import { CATEGORY_COLORS_HEX } from "@/types/environment";
 
 type MarkerData = { id: string; lat: number; lng: number; color: string; size: number; title: string; isUser: boolean; };
-type Props = { events: EnvironmentalEvent[]; selectedEventId: string | null; onSelectEvent: (e: EnvironmentalEvent | null) => void; userLat?: number | null; userLng?: number | null; nearestEvent?: EnvironmentalEvent | null; jumpToObs?: { lat: number; lng: number } | null; };
+type Props = { events: EnvironmentalEvent[]; selectedEventId: string | null; onSelectEvent: (e: EnvironmentalEvent | null) => void; userLat?: number | null; userLng?: number | null; nearestEvent?: EnvironmentalEvent | null; jumpToObs?: { lat: number; lng: number } | null; typhoonTrack?: { current: [number, number]; forecast: [number, number][] } | null; };
 
 const MAX_MARKERS = 500;
 const FALLBACK_COLOR = "#8D9AAF";
@@ -15,7 +15,7 @@ const USER_COLOR = "#45A3FF";
 
 const btn: React.CSSProperties = { display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 8, border: "1px solid var(--color-border)", background: "var(--color-bg-glass)", color: "var(--color-text-secondary)", cursor: "pointer", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" };
 
-export default function DebugGlobe({ events, selectedEventId, onSelectEvent, userLat, userLng, nearestEvent, jumpToObs }: Props) {
+export default function DebugGlobe({ events, selectedEventId, onSelectEvent, userLat, userLng, nearestEvent, jumpToObs, typhoonTrack }: Props) {
   const globeEl = useRef<any>(null);
   const [ready, setReady] = useState(false);
   const [autoRotate, setAutoRotate] = useState(false);
@@ -129,6 +129,13 @@ export default function DebugGlobe({ events, selectedEventId, onSelectEvent, use
     return [{ coords: pts.map((o) => [o.latitude, o.longitude] as [number, number]), color }];
   }, [events, selectedEventId]);
 
+  // ---- Typhoon track path ----
+  const typhoonPath = useMemo(() => {
+    if (!typhoonTrack?.forecast || typhoonTrack.forecast.length === 0) return [];
+    const pts: [number, number][] = [typhoonTrack.current, ...typhoonTrack.forecast];
+    return [{ coords: pts, color: "#E53E3E" }];
+  }, [typhoonTrack]);
+
   // ---- Build markers (with density control) ----
   const allMarkers: MarkerData[] = useMemo(() => {
     const m: MarkerData[] = [];
@@ -180,7 +187,7 @@ export default function DebugGlobe({ events, selectedEventId, onSelectEvent, use
           onGlobeClick={handleGlobeClick}
           onGlobeReady={handleReady}
           enablePointerInteraction
-          pathsData={historyPath.length > 0 ? [historyPath[0]] : []}
+          pathsData={[...historyPath, ...typhoonPath]}
           pathPoints="coords"
           pathPointLat={(p: unknown) => (p as [number, number])[0]}
           pathPointLng={(p: unknown) => (p as [number, number])[1]}

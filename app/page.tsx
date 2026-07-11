@@ -49,6 +49,9 @@ export default function Home() {
   const [hasFirmsKey, setHasFirmsKey] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
 
+  // --- Typhoon state ---
+  const [typhoonTrack, setTyphoonTrack] = useState<{ current: [number, number]; forecast: [number, number][] } | null>(null);
+
   // --- UI state ---
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<EventCategory | "all">("all");
@@ -116,6 +119,13 @@ export default function Home() {
   }, []);
 
   useEffect(() => { fetch("/api/fires?bbox=-0.1,-0.1,0.1,0.1&days=1").then(r => r.json()).then(d => setHasFirmsKey(!(d.source === "unavailable"))).catch(() => {}); }, []);
+
+  // Fetch typhoon track for globe overlay
+  useEffect(() => {
+    fetch("/api/typhoon").then(r => r.json()).then((d: { data?: { current: { lat: number; lng: number }; forecast: { lat: number; lng: number }[] } }) => {
+      if (d.data) setTyphoonTrack({ current: [d.data.current.lat, d.data.current.lng], forecast: d.data.forecast.map(f => [f.lat, f.lng] as [number, number]) });
+    }).catch(() => {});
+  }, []);
 
   // --- Computed ---
   const filteredEvents = useMemo(() => selectedCategory === "all" ? events : events.filter(e => e.category === selectedCategory), [events, selectedCategory]);
@@ -191,6 +201,7 @@ export default function Home() {
         userLng={effectiveLng}
         nearestEvent={nearestEvent}
         jumpToObs={jumpToObs}
+        typhoonTrack={typhoonTrack}
       />
 
       <EventDetails
