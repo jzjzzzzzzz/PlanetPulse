@@ -133,7 +133,19 @@ export default function DebugGlobe({ events, selectedEventId, onSelectEvent, use
   const typhoonPath = useMemo(() => {
     if (!typhoonTrack?.forecast || typhoonTrack.forecast.length === 0) return [];
     const pts: [number, number][] = [typhoonTrack.current, ...typhoonTrack.forecast];
-    return [{ coords: pts, color: "#E53E3E" }];
+    return [{ coords: pts, color: "#FF435D" }];
+  }, [typhoonTrack]);
+
+  // ---- Typhoon markers (current + forecast dots) ----
+  const typhoonMarkers: MarkerData[] = useMemo(() => {
+    if (!typhoonTrack) return [];
+    const markers: MarkerData[] = [
+      { id: "typhoon-current", lat: typhoonTrack.current[0], lng: typhoonTrack.current[1], color: "#FF435D", size: 14, title: "Typhoon BAVI — Current", isUser: false },
+    ];
+    typhoonTrack.forecast.forEach((f, i) => {
+      markers.push({ id: `typhoon-fc-${i}`, lat: f[0], lng: f[1], color: "#FF8888", size: 7, title: `BAVI +${(i+1)*3}h forecast`, isUser: false });
+    });
+    return markers;
   }, [typhoonTrack]);
 
   // ---- Build markers (with density control) ----
@@ -152,6 +164,9 @@ export default function DebugGlobe({ events, selectedEventId, onSelectEvent, use
     }
     return m;
   }, [events, userLat, userLng]);
+
+  // Merge typhoon markers into all markers
+  const allMarkersWithTyphoon = useMemo(() => [...allMarkers, ...typhoonMarkers], [allMarkers, typhoonMarkers]);
 
   const createMarkerElement = useCallback((d: object): HTMLElement => {
     const m = d as MarkerData;
@@ -182,7 +197,7 @@ export default function DebugGlobe({ events, selectedEventId, onSelectEvent, use
           backgroundColor={bgColor}
           atmosphereColor={isDark ? "#5599DD" : "#3388CC"}
           atmosphereAltitude={0.3}
-          htmlElementsData={allMarkers}
+          htmlElementsData={allMarkersWithTyphoon}
           htmlElement={createMarkerElement}
           onGlobeClick={handleGlobeClick}
           onGlobeReady={handleReady}
@@ -193,7 +208,7 @@ export default function DebugGlobe({ events, selectedEventId, onSelectEvent, use
           pathPointLng={(p: unknown) => (p as [number, number])[1]}
           pathPointAlt={0.02}
           pathColor={(d: object) => (d as { color: string }).color}
-          pathStroke={1.5} pathDashLength={0.04} pathDashGap={0.03} pathDashAnimateTime={8000} pathTransitionDuration={500}
+          pathStroke={2} pathDashLength={0.04} pathDashGap={0.03} pathDashAnimateTime={8000} pathTransitionDuration={500}
         />
       </div>
 

@@ -7,6 +7,7 @@ import { CATEGORY_INFO } from "@/lib/typhoon/types";
 import { AlertTriangle, RefreshCw, Clock } from "lucide-react";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import { useTheme } from "@/lib/theme/useTheme";
+import { useLanguage } from "@/lib/i18n/context";
 import StatusCard from "@/components/typhoon/StatusCard";
 import TrendTimeline from "@/components/typhoon/TrendTimeline";
 
@@ -21,6 +22,7 @@ export default function TyphoonEnPage() {
   const [refreshIn, setRefreshIn] = useState(REFRESH_INTERVAL);
   const [selectedPoint, setSelectedPoint] = useState<{ lat: number; lng: number; time: string; pressure: number | null; windSpeed: number | null; isForecast: boolean; hoursAhead: number } | null>(null);
   const { colors } = useTheme();
+  const { lang } = useLanguage();
 
   useEffect(() => { document.body.style.overflow = "auto"; document.body.style.height = "auto"; return () => { document.body.style.overflow = ""; document.body.style.height = ""; }; }, []);
 
@@ -78,16 +80,16 @@ export default function TyphoonEnPage() {
 
       <main style={{ display: "flex", flexDirection: "column" }}>
         <div style={{ height: "50vh", minHeight: 350, position: "relative" }}>
-          <TyphoonMap data={data} selectedPoint={selectedPoint} onPointSelect={setSelectedPoint} lang="en" />
+          <TyphoonMap data={data} selectedPoint={selectedPoint} onPointSelect={setSelectedPoint} lang={lang} />
           <div style={{ position: "absolute", bottom: 4, right: 4, zIndex: 1000, fontSize: 9, color: "rgba(255,255,255,0.5)", background: "rgba(0,0,0,0.6)", padding: "2px 6px", borderRadius: 3, pointerEvents: "none" }}>&copy; JMA | &copy; OpenStreetMap | CartoDB dark_all</div>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, padding: "12px 16px", maxWidth: 1200, margin: "0 auto", width: "100%", boxSizing: "border-box" }} className="typhoon-panels">
           <div className="panel-card" style={{ gridColumn: "1 / -1" }}>
-            <StatusCard data={data} selectedPoint={selectedPoint} lang="en" />
+            <StatusCard data={data} selectedPoint={selectedPoint} lang={lang} />
           </div>
           <div className="panel-card">
-            <TrendTimeline data={data} onPointSelect={setSelectedPoint} selectedPoint={selectedPoint} lang="en" />
+            <TrendTimeline data={data} onPointSelect={setSelectedPoint} selectedPoint={selectedPoint} lang={lang} />
           </div>
           <div className="panel-card">
             <div style={{ fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", color: colors.textSecondary, marginBottom: 10 }}>Official Info &amp; Safety</div>

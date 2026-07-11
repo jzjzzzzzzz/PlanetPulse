@@ -29,8 +29,8 @@ function barColor(cat: string): string {
 }
 
 function barHeight(windMs: number, maxMs: number): number {
-  const pct = maxMs > 0 ? (windMs / maxMs) * 100 : 0;
-  return Math.max(4, pct);
+  const pct = maxMs > 0 ? (windMs / maxMs) : 0;
+  return Math.max(6, Math.round(pct * 80)); // px, 6-80 range
 }
 
 export default function TrendTimeline({ data, onPointSelect, selectedPoint, lang = "zh" }: Props) {
@@ -85,7 +85,7 @@ export default function TrendTimeline({ data, onPointSelect, selectedPoint, lang
             >
               {/* Wind bar */}
               <div style={{
-                width: "100%", maxWidth: 32, height: `${h}%`, minHeight: 4,
+                width: "100%", maxWidth: 32, height: h,
                 background: color, borderRadius: "4px 4px 0 0",
                 opacity: t.isForecast ? 0.7 : 1,
               }} />
