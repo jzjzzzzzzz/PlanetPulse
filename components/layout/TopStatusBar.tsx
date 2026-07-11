@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { RefreshCw, Info } from "lucide-react";
+import { RefreshCw, Info, CloudRain } from "lucide-react";
 
 type TopStatusBarProps = {
   localTime: string;
@@ -115,6 +115,25 @@ export default function TopStatusBar({
         >
           {localTime}
         </span>
+
+        {/* Typhoon monitoring button */}
+        <a
+          href="/typhoon-en"
+          className="flex items-center gap-1 px-2 py-1 rounded-md transition-colors duration-200 hover:brightness-125"
+          style={{
+            color: "var(--color-storm)",
+            background: "#9B7BFF18",
+            border: "1px solid #9B7BFF33",
+            fontSize: 10,
+            fontWeight: 600,
+            textDecoration: "none",
+            whiteSpace: "nowrap",
+          }}
+          title="Typhoon BAVI Monitor"
+        >
+          <CloudRain size={13} strokeWidth={1.5} />
+          <span className="hidden sm:inline">BAVI</span>
+        </a>
 
         {/* Refresh button */}
         <button
