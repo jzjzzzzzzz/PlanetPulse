@@ -9,6 +9,7 @@ import TrendTimeline from "@/components/typhoon/TrendTimeline";
 import OfficialInfo from "@/components/typhoon/OfficialInfo";
 import { AlertTriangle, RefreshCw, Clock } from "lucide-react";
 import ThemeToggle from "@/components/ui/ThemeToggle";
+import { useTheme } from "@/lib/theme/useTheme";
 
 const TyphoonMap = dynamic(() => import("@/components/typhoon/TyphoonMap"), {
   ssr: false,
@@ -18,6 +19,7 @@ const REFRESH_INTERVAL = 30 * 60; // 30 minutes
 
 export default function TyphoonPage() {
   const [data, setData] = useState<TyphoonData | null>(null);
+  const { dark, colors } = useTheme();
   const [error, setError] = useState<string | null>(null);
   const [stale, setStale] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -108,7 +110,7 @@ export default function TyphoonPage() {
       <div
         style={{
           minHeight: "100dvh",
-          background: "linear-gradient(180deg, #0a0e1a 0%, #0d1525 100%)",
+          background: colors.bg,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -126,7 +128,7 @@ export default function TyphoonPage() {
             animation: "spin 1s linear infinite",
           }}
         />
-        <p style={{ color: "#8D9AAF", fontSize: 14 }}>正在获取台风数据...</p>
+        <p style={{ color: colors.textSecondary, fontSize: 14 }}>正在获取台风数据...</p>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
@@ -141,8 +143,8 @@ export default function TyphoonPage() {
     <div
       style={{
         minHeight: "100dvh",
-        background: "linear-gradient(180deg, #0a0e1a 0%, #0d1525 50%, #0f1a2e 100%)",
-        color: "#e0e6f0",
+        background: colors.bg,
+        color: colors.text,
         fontFamily: "system-ui, -apple-system, sans-serif",
       }}
     >
@@ -152,9 +154,9 @@ export default function TyphoonPage() {
           position: "sticky",
           top: 0,
           zIndex: 50,
-          background: "rgba(10, 14, 26, 0.9)",
+          background: colors.headerBg,
           backdropFilter: "blur(12px)",
-          borderBottom: "1px solid rgba(59, 213, 255, 0.15)",
+          borderBottom: `1px solid ${colors.borderAccent}`,
           padding: "10px 16px",
           display: "flex",
           alignItems: "center",
@@ -166,7 +168,7 @@ export default function TyphoonPage() {
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <AlertTriangle size={18} style={{ color: catInfo?.color ?? "#E53E3E" }} />
-            <span style={{ fontSize: 11, letterSpacing: "0.1em", color: "#8D9AAF" }}>
+            <span style={{ fontSize: 11, letterSpacing: "0.1em", color: colors.textSecondary }}>
               TYPHOON MONITOR
             </span>
           </div>
@@ -235,7 +237,7 @@ export default function TyphoonPage() {
           )}
 
           {/* Issue time */}
-          <span style={{ color: "#6B7B95" }}>
+          <span style={{ color: colors.textMuted }}>
             <Clock size={11} style={{ display: "inline", marginRight: 3 }} />
             {storm?.issueTime
               ? new Date(storm.issueTime).toLocaleString("zh-CN", {
@@ -259,7 +261,7 @@ export default function TyphoonPage() {
               borderRadius: 6,
               border: "1px solid rgba(59, 213, 255, 0.3)",
               background: "rgba(59, 213, 255, 0.08)",
-              color: "#3BD5FF",
+              color: colors.accent,
               cursor: "pointer",
               fontSize: 11,
               fontWeight: 600,
@@ -355,9 +357,9 @@ export default function TyphoonPage() {
           textAlign: "center",
           padding: "12px 16px",
           fontSize: 10,
-          color: "#6B7B95",
-          borderTop: "1px solid rgba(59, 213, 255, 0.08)",
-          background: "rgba(10, 14, 26, 0.8)",
+          color: colors.textMuted,
+          borderTop: `1px solid ${colors.border}`,
+          background: colors.footerBg,
         }}
       >
         <p style={{ margin: 0, lineHeight: 1.8 }}>
@@ -367,7 +369,7 @@ export default function TyphoonPage() {
           Copyright © 2026 John Zhou |{" "}
           <a
             href="/"
-            style={{ color: "#3BD5FF", textDecoration: "none" }}
+            style={{ color: colors.accent, textDecoration: "none" }}
           >
             Planet Pulse
           </a>
@@ -377,7 +379,7 @@ export default function TyphoonPage() {
       {/* ============ GLOBAL STYLES ============ */}
       <style>{`
         .panel-card {
-          background: rgba(15, 25, 45, 0.7);
+          background: colors.bgPanel;
           backdrop-filter: blur(12px);
           -webkit-backdrop-filter: blur(12px);
           border: 1px solid rgba(59, 213, 255, 0.12);

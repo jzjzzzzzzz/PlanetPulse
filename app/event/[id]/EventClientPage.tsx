@@ -10,6 +10,7 @@ import { formatRelativeTime, formatTimestamp } from "@/lib/formatting/date";
 import { ArrowLeft, ExternalLink, MapPin, Calendar, Activity, Gauge, TrendingUp, Share2, Wind } from "lucide-react";
 import Link from "next/link";
 import ThemeToggle from "@/components/ui/ThemeToggle";
+import { useTheme } from "@/lib/theme/useTheme";
 
 const EventMiniMap = dynamic(() => import("./EventMiniMap"), { ssr: false });
 
@@ -30,10 +31,10 @@ const TIER_LABELS: Record<ImportanceResult["tier"], string> = {
 
 function MetricCard({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: string }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "10px 8px", background: "rgba(255,255,255,0.03)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.05)" }}>
-      <div style={{ fontSize: 10, color: "#6B7B95", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "var(--font-jetbrains-mono), monospace", color: accent ?? "#e0e6f0", lineHeight: 1.2 }}>{value}</div>
-      {sub && <div style={{ fontSize: 10, color: "#6B7B95", marginTop: 1 }}>{sub}</div>}
+    <div className="panel-card" style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "10px 8px" }}>
+      <div style={{ fontSize: 10, color: "var(--tp-text-muted, #6B7B95)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</div>
+      <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "var(--font-jetbrains-mono), monospace", color: accent ?? "var(--tp-text, #e0e6f0)", lineHeight: 1.2 }}>{value}</div>
+      {sub && <div style={{ fontSize: 10, color: "var(--tp-text-muted, #6B7B95)", marginTop: 1 }}>{sub}</div>}
     </div>
   );
 }
@@ -44,6 +45,7 @@ function MetricCard({ label, value, sub, accent }: { label: string; value: strin
 
 export default function EventClientPage({ eventId }: { eventId: string }) {
   const [event, setEvent] = useState<EnvironmentalEvent | null>(null);
+  const { dark, colors } = useTheme();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [metadata, setMetadata] = useState<{ source: string; fetchedAt: string } | null>(null);
@@ -94,9 +96,9 @@ export default function EventClientPage({ eventId }: { eventId: string }) {
   // ============================================================
   if (loading) {
     return (
-      <div style={{ minHeight: "100dvh", background: "linear-gradient(180deg, #0a0e1a 0%, #0d1525 100%)", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16 }}>
+      <div style={{ minHeight: "100dvh", background: colors.bg, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16 }}>
         <div style={{ width: 48, height: 48, border: "3px solid rgba(59, 213, 255, 0.2)", borderTopColor: "#3BD5FF", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
-        <p style={{ color: "#8D9AAF", fontSize: 14 }}>Loading event data...</p>
+        <p style={{ color: colors.textSecondary, fontSize: 14 }}>Loading event data...</p>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
@@ -107,35 +109,35 @@ export default function EventClientPage({ eventId }: { eventId: string }) {
   // ============================================================
   if (error || !event) {
     return (
-      <div style={{ minHeight: "100dvh", background: "linear-gradient(180deg, #0a0e1a 0%, #0d1525 100%)", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16, color: "#e0e6f0", padding: 24 }}>
+      <div style={{ minHeight: "100dvh", background: colors.bg, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16, color: colors.text, padding: 24 }}>
         <h1 style={{ fontSize: 24, fontWeight: 700 }}>Event Not Found</h1>
-        <p style={{ color: "#8D9AAF", fontSize: 14 }}>{error ?? "This event may have been closed or removed."}</p>
-        <Link href="/" style={{ color: "#3BD5FF", textDecoration: "none", fontSize: 14, marginTop: 8 }}>← Back to Planet Pulse</Link>
+        <p style={{ color: colors.textSecondary, fontSize: 14 }}>{error ?? "This event may have been closed or removed."}</p>
+        <Link href="/" style={{ color: colors.accent, textDecoration: "none", fontSize: 14, marginTop: 8 }}>← Back to Planet Pulse</Link>
       </div>
     );
   }
 
-  const tierInfo = importance ? { color: TIER_COLORS[importance.tier], label: TIER_LABELS[importance.tier] } : { color: "#3BD5FF", label: "—" };
+  const tierInfo = importance ? { color: TIER_COLORS[importance.tier], label: TIER_LABELS[importance.tier] } : { color: colors.accent, label: "—" };
 
   return (
-    <div style={{ minHeight: "100dvh", background: "linear-gradient(180deg, #0a0e1a 0%, #0d1525 50%, #0f1a2e 100%)", color: "#e0e6f0", fontFamily: "system-ui, -apple-system, sans-serif" }}>
+    <div style={{ minHeight: "100dvh", background: colors.bg, color: colors.text, "--tp-bg-panel": colors.bgPanel, "--tp-border": colors.border, "--tp-text": colors.text, "--tp-text-muted": colors.textMuted, fontFamily: "system-ui, -apple-system, sans-serif" } as React.CSSProperties}>
       {/* ============ HEADER ============ */}
       <header style={{
         position: "sticky", top: 0, zIndex: 50,
-        background: "rgba(10, 14, 26, 0.9)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
-        borderBottom: "1px solid rgba(59, 213, 255, 0.15)",
+        background: colors.headerBg, backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
+        borderBottom: `1px solid ${colors.borderAccent}`,
         padding: "10px 16px", display: "flex", alignItems: "center", gap: 12,
       }}>
-        <Link href="/" style={{ color: "#8D9AAF", display: "flex", alignItems: "center", gap: 4, textDecoration: "none", fontSize: 12 }}>
+        <Link href="/" style={{ color: colors.textSecondary, display: "flex", alignItems: "center", gap: 4, textDecoration: "none", fontSize: 12 }}>
           <ArrowLeft size={14} /> Planet Pulse
         </Link>
         <div style={{ flex: 1 }} />
         <button onClick={handleShare}
-          style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(59, 213, 255, 0.3)", background: "rgba(59, 213, 255, 0.08)", color: "#3BD5FF", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>
+          style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(59, 213, 255, 0.3)", background: "rgba(59, 213, 255, 0.08)", color: colors.accent, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>
           <Share2 size={12} /> {copied ? "Copied!" : "Share"}
         </button>
         <a href={event.sourceUrl ?? "#"} target="_blank" rel="noopener noreferrer"
-          style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)", color: "#8D9AAF", textDecoration: "none", fontSize: 11 }}>
+          style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.08)", background: colors.cardBg, color: colors.textSecondary, textDecoration: "none", fontSize: 11 }}>
           <ExternalLink size={12} /> Source
         </a>
       </header>
@@ -163,7 +165,7 @@ export default function EventClientPage({ eventId }: { eventId: string }) {
         </h1>
 
         {/* Meta */}
-        <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 11, color: "#6B7B95", marginBottom: 20 }}>
+        <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 11, color: colors.textMuted, marginBottom: 20 }}>
           <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Calendar size={11} />{event.updatedAt ? formatRelativeTime(event.updatedAt) : "—"}</span>
           <span style={{ display: "flex", alignItems: "center", gap: 4 }}><MapPin size={11} />{event.latitude.toFixed(2)}°N, {event.longitude.toFixed(2)}°E</span>
           {distanceKm != null && (
@@ -181,13 +183,13 @@ export default function EventClientPage({ eventId }: { eventId: string }) {
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "10px 8px", borderRadius: 8, border: `1px solid ${tierInfo.color}33`, background: `${tierInfo.color}08` }}>
             <div style={{ fontSize: 10, color: tierInfo.color, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700 }}>Importance</div>
             <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "var(--font-jetbrains-mono), monospace", color: tierInfo.color, lineHeight: 1.2 }}>{importance?.score ?? event.hotspotScore}</div>
-            <div style={{ fontSize: 10, color: "#6B7B95", marginTop: 1 }}>weighted</div>
+            <div style={{ fontSize: 10, color: colors.textMuted, marginTop: 1 }}>weighted</div>
           </div>
           <MetricCard label="Magnitude" value={event.magnitudeValue != null ? `${event.magnitudeValue}` : "—"} sub={event.magnitudeUnit ?? "no data"} />
         </div>
 
         {/* ============ MAP ============ */}
-        <div style={{ height: 300, borderRadius: 12, overflow: "hidden", marginBottom: 20, border: "1px solid rgba(59, 213, 255, 0.12)" }}>
+        <div style={{ height: 300, borderRadius: 12, overflow: "hidden", marginBottom: 20, border: `1px solid ${colors.border}` }}>
           <EventMiniMap lat={event.latitude} lng={event.longitude} category={event.category} observations={event.observations} />
         </div>
 
@@ -196,12 +198,12 @@ export default function EventClientPage({ eventId }: { eventId: string }) {
           {/* Score Breakdown */}
           <div className="panel-card">
             <h2 style={{ fontSize: 14, fontWeight: 600, margin: "0 0 10px", display: "flex", alignItems: "center", gap: 6 }}>
-              <TrendingUp size={14} style={{ color: "#3BD5FF" }} />Score Breakdown
+              <TrendingUp size={14} style={{ color: colors.accent }} />Score Breakdown
             </h2>
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               {(importance?.explanation ?? event.scoreExplanation).map((line, i) => (
-                <div key={i} style={{ fontSize: 11, color: "#8D9AAF", display: "flex", gap: 6 }}>
-                  <span style={{ color: "#3BD5FF", flexShrink: 0 }}>•</span> {line}
+                <div key={i} style={{ fontSize: 11, color: colors.textSecondary, display: "flex", gap: 6 }}>
+                  <span style={{ color: colors.accent, flexShrink: 0 }}>•</span> {line}
                 </div>
               ))}
             </div>
@@ -219,25 +221,25 @@ export default function EventClientPage({ eventId }: { eventId: string }) {
                 ["Updated", event.updatedAt ? formatTimestamp(event.updatedAt) : "Unknown"],
               ].map(([k, v]) => (
                 <div key={k} style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: "#6B7B95" }}>{k}</span>
-                  <span style={{ color: "#e0e6f0" }}>{v}</span>
+                  <span style={{ color: colors.textMuted }}>{k}</span>
+                  <span style={{ color: colors.text }}>{v}</span>
                 </div>
               ))}
               <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "#6B7B95" }}>Source</span>
-                <a href={event.sourceUrl ?? "#"} target="_blank" rel="noopener noreferrer" style={{ color: "#3BD5FF", textDecoration: "none" }}>
+                <span style={{ color: colors.textMuted }}>Source</span>
+                <a href={event.sourceUrl ?? "#"} target="_blank" rel="noopener noreferrer" style={{ color: colors.accent, textDecoration: "none" }}>
                   {event.sourceName} <ExternalLink size={10} style={{ display: "inline" }} />
                 </a>
               </div>
               {metadata && (
                 <>
                   <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span style={{ color: "#6B7B95" }}>Data</span>
-                    <span style={{ color: "#e0e6f0" }}>{metadata.source}</span>
+                    <span style={{ color: colors.textMuted }}>Data</span>
+                    <span style={{ color: colors.text }}>{metadata.source}</span>
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span style={{ color: "#6B7B95" }}>Fetched</span>
-                    <span style={{ color: "#6B7B95", fontSize: 9 }}>{formatTimestamp(metadata.fetchedAt)}</span>
+                    <span style={{ color: colors.textMuted }}>Fetched</span>
+                    <span style={{ color: colors.textMuted, fontSize: 9 }}>{formatTimestamp(metadata.fetchedAt)}</span>
                   </div>
                 </>
               )}
@@ -253,14 +255,14 @@ export default function EventClientPage({ eventId }: { eventId: string }) {
               <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: 260, overflowY: "auto" }}>
                 {event.observations.slice().reverse().slice(0, 20).map((obs, i) => (
                   <div key={i} style={{ display: "flex", gap: 10, padding: "5px 8px", borderRadius: 4, background: "rgba(255,255,255,0.015)", fontSize: 10, alignItems: "center" }}>
-                    <span style={{ color: "#6B7B95", flexShrink: 0, width: 110, fontFamily: "var(--font-jetbrains-mono), monospace" }}>
+                    <span style={{ color: colors.textMuted, flexShrink: 0, width: 110, fontFamily: "var(--font-jetbrains-mono), monospace" }}>
                       {obs.observedAt ? formatTimestamp(obs.observedAt) : "—"}
                     </span>
-                    <span style={{ color: "#8D9AAF", flexShrink: 0, fontFamily: "var(--font-jetbrains-mono), monospace" }}>
+                    <span style={{ color: colors.textSecondary, flexShrink: 0, fontFamily: "var(--font-jetbrains-mono), monospace" }}>
                       {obs.latitude.toFixed(2)}°, {obs.longitude.toFixed(2)}°
                     </span>
                     {obs.magnitudeValue != null && (
-                      <span style={{ color: "#3BD5FF", flexShrink: 0, fontWeight: 600 }}>
+                      <span style={{ color: colors.accent, flexShrink: 0, fontWeight: 600 }}>
                         {obs.magnitudeValue}{obs.magnitudeUnit ?? ""}
                       </span>
                     )}
@@ -268,7 +270,7 @@ export default function EventClientPage({ eventId }: { eventId: string }) {
                 ))}
               </div>
             ) : (
-              <p style={{ fontSize: 11, color: "#6B7B95", margin: 0 }}>No observation history.</p>
+              <p style={{ fontSize: 11, color: colors.textMuted, margin: 0 }}>No observation history.</p>
             )}
           </div>
         </div>
@@ -276,16 +278,16 @@ export default function EventClientPage({ eventId }: { eventId: string }) {
         <ThemeToggle />
 
         {/* ============ FOOTER ============ */}
-        <footer style={{ textAlign: "center", marginTop: 28, paddingTop: 14, borderTop: "1px solid rgba(59, 213, 255, 0.08)", fontSize: 10, color: "#6B7B95", lineHeight: 1.8 }}>
+        <footer style={{ textAlign: "center", marginTop: 28, paddingTop: 14, borderTop: `1px solid ${colors.border}`, fontSize: 10, color: colors.textMuted, lineHeight: 1.8 }}>
           <p style={{ margin: 0 }}>Data from NASA EONET. Planet Pulse is not an official NASA product.</p>
-          <p style={{ margin: "4px 0 0", opacity: 0.6 }}>Copyright © 2026 John Zhou | <Link href="/" style={{ color: "#3BD5FF", textDecoration: "none" }}>Planet Pulse</Link></p>
+          <p style={{ margin: "4px 0 0", opacity: 0.6 }}>Copyright © 2026 John Zhou | <Link href="/" style={{ color: colors.accent, textDecoration: "none" }}>Planet Pulse</Link></p>
         </footer>
       </div>
 
       {/* ============ STYLES ============ */}
       <style>{`
         .panel-card {
-          background: rgba(15, 25, 45, 0.7);
+          background: colors.bgPanel;
           backdrop-filter: blur(12px);
           -webkit-backdrop-filter: blur(12px);
           border: 1px solid rgba(59, 213, 255, 0.12);
