@@ -110,7 +110,7 @@ export type UserLocation = {
   latitude: number | null;
   longitude: number | null;
   timezone: string | null;
-  source: "vercel" | "browser-tz" | "geolocation" | "unavailable";
+  source: "vercel" | "edgeone" | "cloudflare" | "browser-tz" | "geolocation" | "unavailable";
 };
 
 /** Normalized FIRMS fire detection */

@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
         latitude: null,
         longitude: null,
         timezone: null,
-        source: "unavailable" as const,
+        source: "unavailable",
       },
       { headers }
     );

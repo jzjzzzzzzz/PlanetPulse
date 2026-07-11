@@ -1,124 +1,78 @@
 // ============================================================
-// Planet Pulse — Location helpers (Vercel IP geolocation)
+// Planet Pulse — Location helpers (multi-platform)
+// Supports: Vercel, EdgeOne, Cloudflare, browser geolocation
 // ============================================================
 
 import type { UserLocation } from "@/types/environment";
 
-/**
- * Safely decode a URI-encoded component.
- * Returns the original string if decoding fails.
- */
 function tryDecodeURIComponent(value: string): string {
-  try {
-    return decodeURIComponent(value);
-  } catch {
-    return value;
-  }
+  try { return decodeURIComponent(value); } catch { return value; }
 }
 
 /**
- * Reads Vercel IP geolocation headers from the incoming request and returns a
- * normalized UserLocation.
- *
- * Headers consumed (x-vercel-ip-*). The raw IP address header is intentionally
- * never read, stored, or logged.
- *
- * Returns source: "unavailable" when none of the expected headers are present.
+ * Try multiple CDN/edge header sources for IP geolocation.
+ * Priority: Vercel > EdgeOne > Cloudflare > none
  */
-export function getLocationFromHeaders(
-  headers: Headers
-): UserLocation {
-  const city = headers.get("x-vercel-ip-city");
-  const country = headers.get("x-vercel-ip-country");
-  const region = headers.get("x-vercel-ip-country-region");
-  const latitudeRaw = headers.get("x-vercel-ip-latitude");
-  const longitudeRaw = headers.get("x-vercel-ip-longitude");
-  const timezone = headers.get("x-vercel-ip-timezone");
+export function getLocationFromHeaders(headers: Headers): UserLocation {
+  // Try Vercel headers
+  let city = headers.get("x-vercel-ip-city");
+  let country = headers.get("x-vercel-ip-country");
+  let region = headers.get("x-vercel-ip-country-region");
+  let lat = headers.get("x-vercel-ip-latitude");
+  let lng = headers.get("x-vercel-ip-longitude");
+  let tz = headers.get("x-vercel-ip-timezone");
+  let source: UserLocation["source"] = "vercel";
 
-  // If every header is missing, the request did not come through Vercel's edge.
-  const hasAnyHeader =
-    city !== null ||
-    country !== null ||
-    region !== null ||
-    latitudeRaw !== null ||
-    longitudeRaw !== null ||
-    timezone !== null;
-
-  if (!hasAnyHeader) {
-    return {
-      city: null,
-      country: null,
-      region: null,
-      latitude: null,
-      longitude: null,
-      timezone: null,
-      source: "unavailable",
-    };
+  // Try EdgeOne / Tencent Cloud CDN headers
+  if (!city && !country) {
+    city = headers.get("eo-client-ip-city") ?? headers.get("x-tencent-ip-city");
+    country = headers.get("eo-client-ip-country") ?? headers.get("x-tencent-ip-country");
+    region = headers.get("eo-client-ip-region") ?? headers.get("x-tencent-ip-region");
+    lat = headers.get("eo-client-ip-latitude");
+    lng = headers.get("eo-client-ip-longitude");
+    tz = headers.get("eo-client-ip-timezone");
+    if (country) source = "edgeone";
   }
 
-  const latitude = latitudeRaw !== null ? Number(latitudeRaw) : null;
-  const longitude = longitudeRaw !== null ? Number(longitudeRaw) : null;
+  // Try Cloudflare headers
+  if (!city && !country) {
+    country = headers.get("cf-ipcountry");
+    city = headers.get("cf-ipcity");
+    region = headers.get("cf-region");
+    lat = headers.get("cf-iplatitude");
+    lng = headers.get("cf-iplongitude");
+    tz = headers.get("cf-timezone");
+    if (country) source = "cloudflare";
+  }
+
+  const hasAny = city || country || region || lat || lng || tz;
+  if (!hasAny) {
+    return { city: null, country: null, region: null, latitude: null, longitude: null, timezone: null, source: "unavailable" };
+  }
+
+  const latitude = lat ? Number(lat) : null;
+  const longitude = lng ? Number(lng) : null;
 
   return {
-    city: city !== null ? tryDecodeURIComponent(city) : null,
-    country: country !== null ? tryDecodeURIComponent(country) : null,
-    region: region !== null ? tryDecodeURIComponent(region) : null,
-    latitude:
-      latitude !== null && !Number.isNaN(latitude) ? latitude : null,
-    longitude:
-      longitude !== null && !Number.isNaN(longitude) ? longitude : null,
-    timezone: timezone !== null ? tryDecodeURIComponent(timezone) : null,
-    source: "vercel",
+    city: city ? tryDecodeURIComponent(city) : null,
+    country: country ? tryDecodeURIComponent(country) : null,
+    region: region ? tryDecodeURIComponent(region) : null,
+    latitude: latitude != null && !Number.isNaN(latitude) ? latitude : null,
+    longitude: longitude != null && !Number.isNaN(longitude) ? longitude : null,
+    timezone: tz ? tryDecodeURIComponent(tz) : null,
+    source,
   };
 }
 
-/**
- * Resolves a timezone string.
- *
- * When called with an explicit timezone (e.g. from Vercel headers) it returns
- * that value directly. Otherwise it attempts Intl.DateTimeFormat().resolvedOptions()
- * as a fallback, which on most modern runtimes will return the host system
- * timezone. Returns null when no timezone can be determined.
- */
 export function getBrowserTimezone(timezone?: string): string | null {
-  if (timezone) {
-    return timezone;
-  }
-
-  try {
-    const resolved = Intl.DateTimeFormat().resolvedOptions();
-    return resolved.timeZone ?? null;
-  } catch {
-    return null;
-  }
+  if (timezone) return timezone;
+  try { return Intl.DateTimeFormat().resolvedOptions().timeZone ?? null; } catch { return null; }
 }
 
-/**
- * Returns a human-readable location string from a UserLocation.
- *
- * Examples:
- * - "San Francisco, California, US"
- * - "London, GB"
- * - "Unknown location"
- */
 export function formatLocation(location: UserLocation): string {
   const parts: string[] = [];
-
-  if (location.city) {
-    parts.push(location.city);
-  }
-
-  if (location.region) {
-    parts.push(location.region);
-  }
-
-  if (location.country) {
-    parts.push(location.country);
-  }
-
-  if (parts.length === 0) {
-    return "Unknown location";
-  }
-
-  return parts.join(", ");
+  if (location.city) parts.push(location.city);
+  if (location.region) parts.push(location.region);
+  if (location.country) parts.push(location.country);
+  return parts.length === 0 ? "Unknown location" : parts.join(", ");
 }

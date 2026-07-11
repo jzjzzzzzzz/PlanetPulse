@@ -103,11 +103,11 @@ export default function Home() {
         const res = await fetch("/api/location");
         if (!res.ok) return;
         const data: LocationResponse = await res.json();
-        if (!cancelled && data.source === "vercel") {
+        if (!cancelled && data.source !== "unavailable") {
           setUserLocation({
             city: data.city ?? null, country: data.country ?? null, region: data.region ?? null,
             latitude: data.latitude ?? null, longitude: data.longitude ?? null,
-            timezone: data.timezone ?? null, source: "vercel",
+            timezone: data.timezone ?? null, source: data.source,
           });
         } else if (!cancelled) {
           setUserLocation((prev) => ({ ...prev, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone ?? null, source: prev.source === "unavailable" ? "browser-tz" : prev.source }));
