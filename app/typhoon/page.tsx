@@ -46,7 +46,7 @@ export default function TyphoonPage() {
         setError(json.error);
         setStale(json.stale);
       } else {
-        setError(json.error ?? "未知错误");
+        setError(json.error ?? "Unknown error");
       }
     } catch (err) {
       setError((err as Error).message);
@@ -129,7 +129,7 @@ export default function TyphoonPage() {
             animation: "spin 1s linear infinite",
           }}
         />
-        <p style={{ color: colors.textSecondary, fontSize: 14 }}>正在获取台风数据...</p>
+        <p style={{ color: colors.textSecondary, fontSize: 14 }}>Fetching typhoon data...</p>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
@@ -181,7 +181,7 @@ export default function TyphoonPage() {
               margin: 0,
             }}
           >
-            台风 {storm?.nameJp ?? "巴威"} / {storm?.nameEn ?? "BAVI"}
+            {storm?.nameEn ?? "BAVI"}
             <span
               style={{
                 fontSize: 12,
@@ -194,7 +194,7 @@ export default function TyphoonPage() {
                 border: `1px solid ${catInfo?.color ?? "#F5D547"}40`,
               }}
             >
-              {catInfo?.labelJp ?? "台風"}
+              {catInfo?.label ?? "Typhoon"}
             </span>
           </h1>
         </div>
@@ -214,7 +214,7 @@ export default function TyphoonPage() {
               }}
             >
               <AlertTriangle size={12} />
-              数据可能已过期
+              Data may be outdated
             </span>
           )}
 
@@ -268,7 +268,7 @@ export default function TyphoonPage() {
               fontWeight: 600,
               opacity: loading ? 0.5 : 1,
             }}
-            aria-label="手动刷新"
+            aria-label="Manual refresh"
           >
             <RefreshCw
               size={12}
@@ -370,7 +370,7 @@ export default function TyphoonPage() {
         }}
       >
         <p style={{ margin: 0, lineHeight: 1.8 }}>
-          数据来源：日本气象厅 (JMA) | 台风信息仅供信息参考，请以当地主管部门正式预警为准
+          Data source: Japan Meteorological Agency (JMA) | For informational purposes only — follow official local authority warnings
         </p>
         <p style={{ margin: "4px 0 0", opacity: 0.6 }}>
           Copyright © 2026 John Zhou |{" "}

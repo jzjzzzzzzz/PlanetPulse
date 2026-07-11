@@ -147,15 +147,10 @@ function MapController({
       icon: typhoonIcon,
     })
       .bindTooltip(
-        lang === "en"
-          ? `<b>${data.storm.nameEn}</b><br/>
-             Pressure: ${data.current.pressure} hPa<br/>
-             Wind: ${data.current.windSpeed} kt<br/>
-             ${new Date(data.current.validTime).toLocaleString("en-US")}`
-          : `<b>${data.storm.nameEn}</b><br/>
-             气压: ${data.current.pressure} hPa<br/>
-             风速: ${data.current.windSpeed} kt<br/>
-             ${new Date(data.current.validTime).toLocaleString("zh-CN")}`,
+        `<b>${data.storm.nameEn}</b><br/>
+         Pressure: ${data.current.pressure} hPa<br/>
+         Wind: ${data.current.windSpeed} kt<br/>
+         ${new Date(data.current.validTime).toLocaleString("en-US")}`,
         { direction: "top", offset: [0, -20] },
       )
       .addTo(map);
@@ -179,13 +174,9 @@ function MapController({
 
       const marker = L.marker([fp.lat, fp.lng], { icon })
         .bindTooltip(
-          lang === "en"
-            ? `<b>+${fp.hoursAhead}h Forecast</b><br/>
-               Pressure: ${fp.pressure} hPa<br/>
-               Wind: ${fp.windSpeed} kt`
-            : `<b>+${fp.hoursAhead}h 预报</b><br/>
-               气压: ${fp.pressure} hPa<br/>
-               风速: ${fp.windSpeed} kt`,
+          `<b>+${fp.hoursAhead}h Forecast</b><br/>
+           Pressure: ${fp.pressure} hPa<br/>
+           Wind: ${fp.windSpeed} kt`,
           { direction: "top" },
         )
         .on("click", () => {
@@ -268,25 +259,19 @@ export default function TyphoonMap({ data, selectedPoint, onPointSelect, lang = 
           }}
         >
           <div style={{ color: selectedPoint.isForecast ? "#F5D547" : "#E53E3E", fontWeight: 600, marginBottom: 4 }}>
-            {selectedPoint.isForecast
-              ? (lang === "en" ? `+${selectedPoint.hoursAhead}h Forecast` : `+${selectedPoint.hoursAhead}小时 预报`)
-              : (lang === "en" ? "Current Position" : "当前位置")}
+            {selectedPoint.isForecast ? `+${selectedPoint.hoursAhead}h Forecast` : "Current Position"}
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2px 8px" }}>
-            <span style={{ color: "#6B7B95" }}>{lang === "en" ? "Time" : "时间"}</span>
-            <span>{new Date(selectedPoint.time).toLocaleString(lang === "en" ? "en-US" : "zh-CN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
-            {selectedPoint.pressure != null && (
-              <>
-                <span style={{ color: "#6B7B95" }}>{lang === "en" ? "Pressure" : "气压"}</span>
-                <span>{selectedPoint.pressure} hPa</span>
-              </>
-            )}
-            {selectedPoint.windSpeed != null && (
-              <>
-                <span style={{ color: "#6B7B95" }}>{lang === "en" ? "Wind" : "风速"}</span>
-                <span>{selectedPoint.windSpeed} kt ({Math.round(selectedPoint.windSpeed * 1.852)} km/h)</span>
-              </>
-            )}
+            <span style={{ color: "#6B7B95" }}>Time</span>
+            <span>{new Date(selectedPoint.time).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+            {selectedPoint.pressure != null && (<>
+              <span style={{ color: "#6B7B95" }}>Pressure</span>
+              <span>{selectedPoint.pressure} hPa</span>
+            </>)}
+            {selectedPoint.windSpeed != null && (<>
+              <span style={{ color: "#6B7B95" }}>Wind</span>
+              <span>{selectedPoint.windSpeed} kt ({Math.round(selectedPoint.windSpeed * 1.852)} km/h)</span>
+            </>)}
           </div>
         </div>
       )}
@@ -309,19 +294,19 @@ export default function TyphoonMap({ data, selectedPoint, onPointSelect, lang = 
       >
         <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 3 }}>
           <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#E53E3E" }} />
-          {lang === "en" ? "Current" : "当前位置"}
+          Current
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 3 }}>
           <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#F5D547" }} />
-          {lang === "en" ? "Forecast" : "预报点"}
+          Forecast
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 3 }}>
           <div style={{ width: 14, height: 2, background: "#F5D547", opacity: 0.5 }} />
-          {lang === "en" ? "Forecast path" : "预报路径"}
+          Forecast path
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
           <div style={{ width: 14, height: 2, background: "#6B9BD2", opacity: 0.4 }} />
-          {lang === "en" ? "Track history" : "历史轨迹"}
+          Track history
         </div>
       </div>
     </div>
