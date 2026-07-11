@@ -185,9 +185,9 @@ export default function TyphoonEnPage() {
       </header>
 
       {/* MAIN */}
-      <main style={{ display: "flex", flexDirection: "column", minHeight: "calc(100dvh - 60px)" }}>
+      <main style={{ display: "flex", flexDirection: "column" }}>
         {/* MAP */}
-        <div style={{ flex: 1, position: "relative", minHeight: 350 }}>
+        <div style={{ height: "50vh", minHeight: 350, position: "relative" }}>
           <TyphoonMap data={data} selectedPoint={selectedPoint} onPointSelect={setSelectedPoint} />
           <div style={{ position: "absolute", bottom: 4, right: 4, zIndex: 1000, fontSize: 9, color: "rgba(255,255,255,0.5)", background: "rgba(0,0,0,0.6)", padding: "2px 6px", borderRadius: 3, pointerEvents: "none" }}>
             &copy; JMA | &copy; OpenStreetMap | CartoDB dark_all
@@ -205,7 +205,10 @@ export default function TyphoonEnPage() {
                     {selectedPoint ? (selectedPoint.isForecast ? `+${selectedPoint.hoursAhead}h Forecast` : "Current Position") : "Real-Time Status"}
                   </h2>
                   <span style={{ fontSize: 11, color: "#6B7B95" }}>
-                    {new Date((selectedPoint ?? data.current as unknown as typeof selectedPoint)?.time ?? data.current.validTime).toLocaleString("en", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", timeZoneName: "short" })}
+                    {(() => {
+                      const t = selectedPoint?.time ?? data.current.validTime;
+                      return new Date(t).toLocaleString("en", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", timeZoneName: "short" });
+                    })()}
                   </span>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))", gap: 8 }}>

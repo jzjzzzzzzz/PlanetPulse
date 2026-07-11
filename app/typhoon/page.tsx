@@ -272,11 +272,10 @@ export default function TyphoonPage() {
         style={{
           display: "flex",
           flexDirection: "column",
-          minHeight: "calc(100dvh - 60px)",
         }}
       >
         {/* ============ MAP SECTION ============ */}
-        <div style={{ flex: 1, position: "relative", minHeight: 350 }}>
+        <div style={{ height: "50vh", minHeight: 350, position: "relative" }}>
           <TyphoonMap
             data={data}
             selectedPoint={selectedPoint}
