@@ -8,7 +8,7 @@ import { AlertTriangle, RefreshCw, Clock, Wind, Gauge, Compass, MoveRight, Circl
 
 const TyphoonMap = dynamic(() => import("@/components/typhoon/TyphoonMap"), { ssr: false });
 
-const REFRESH_INTERVAL = 5 * 60;
+const REFRESH_INTERVAL = 30 * 60; // 30 minutes
 
 // ====================================================================
 // Helper: metric card
@@ -185,7 +185,7 @@ export default function TyphoonEnPage() {
       </header>
 
       {/* MAIN */}
-      <main style={{ display: "flex", flexDirection: "column", height: "calc(100dvh - 60px)" }}>
+      <main style={{ display: "flex", flexDirection: "column", minHeight: "calc(100dvh - 60px)" }}>
         {/* MAP */}
         <div style={{ flex: 1, position: "relative", minHeight: 350 }}>
           <TyphoonMap data={data} selectedPoint={selectedPoint} onPointSelect={setSelectedPoint} />

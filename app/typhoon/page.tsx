@@ -13,7 +13,7 @@ const TyphoonMap = dynamic(() => import("@/components/typhoon/TyphoonMap"), {
   ssr: false,
 });
 
-const REFRESH_INTERVAL = 5 * 60; // 5 minutes in seconds
+const REFRESH_INTERVAL = 30 * 60; // 30 minutes
 
 export default function TyphoonPage() {
   const [data, setData] = useState<TyphoonData | null>(null);
@@ -272,7 +272,7 @@ export default function TyphoonPage() {
         style={{
           display: "flex",
           flexDirection: "column",
-          height: "calc(100dvh - 60px)",
+          minHeight: "calc(100dvh - 60px)",
         }}
       >
         {/* ============ MAP SECTION ============ */}

@@ -129,10 +129,10 @@ export default function TopStatusBar({
             textDecoration: "none",
             whiteSpace: "nowrap",
           }}
-          title="Typhoon BAVI Monitor"
+          title="Typhoon BAVI Tracker"
         >
           <CloudRain size={13} strokeWidth={1.5} />
-          <span className="hidden sm:inline">BAVI</span>
+          <span className="hidden sm:inline">TYPHOON</span>
         </a>
 
         {/* Refresh button */}

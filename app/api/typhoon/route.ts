@@ -11,7 +11,7 @@ type CacheEntry = {
 };
 
 let _cache: CacheEntry | null = null;
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 const STALE_TTL_MS = 30 * 60 * 1000; // 30 minutes stale
 
 /**
@@ -23,7 +23,7 @@ const STALE_TTL_MS = 30 * 60 * 1000; // 30 minutes stale
  */
 export async function GET() {
   const headers: Record<string, string> = {
-    "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+    "Cache-Control": "public, s-maxage=1800, stale-while-revalidate=1800",
     "Access-Control-Allow-Origin": "*",
   };
 
