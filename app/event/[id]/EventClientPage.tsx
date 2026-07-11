@@ -9,6 +9,7 @@ import { haversineDistance } from "@/lib/geo/distance";
 import { formatRelativeTime, formatTimestamp } from "@/lib/formatting/date";
 import { ArrowLeft, ExternalLink, MapPin, Calendar, Activity, Gauge, TrendingUp, Share2, Wind } from "lucide-react";
 import Link from "next/link";
+import ThemeToggle from "@/components/ui/ThemeToggle";
 
 const EventMiniMap = dynamic(() => import("./EventMiniMap"), { ssr: false });
 
@@ -271,6 +272,8 @@ export default function EventClientPage({ eventId }: { eventId: string }) {
             )}
           </div>
         </div>
+
+        <ThemeToggle />
 
         {/* ============ FOOTER ============ */}
         <footer style={{ textAlign: "center", marginTop: 28, paddingTop: 14, borderTop: "1px solid rgba(59, 213, 255, 0.08)", fontSize: 10, color: "#6B7B95", lineHeight: 1.8 }}>

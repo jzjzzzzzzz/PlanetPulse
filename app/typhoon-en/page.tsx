@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import type { TyphoonData, TyphoonApiResponse } from "@/lib/typhoon/types";
 import { CATEGORY_INFO, knotsToKmh } from "@/lib/typhoon/types";
 import { AlertTriangle, RefreshCw, Clock, Wind, Gauge, Compass, MoveRight, Circle, TrendingDown, Shield, ExternalLink } from "lucide-react";
+import ThemeToggle from "@/components/ui/ThemeToggle";
 
 const TyphoonMap = dynamic(() => import("@/components/typhoon/TyphoonMap"), { ssr: false });
 
@@ -299,6 +300,8 @@ export default function TyphoonEnPage() {
           </div>
         </div>
       </main>
+
+      <ThemeToggle />
 
       {/* FOOTER */}
       <footer style={{ textAlign: "center", padding: "12px 16px", fontSize: 10, color: "#6B7B95", borderTop: "1px solid rgba(59, 213, 255, 0.08)", background: "rgba(10, 14, 26, 0.8)" }}>

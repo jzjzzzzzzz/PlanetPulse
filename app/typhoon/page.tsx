@@ -8,6 +8,7 @@ import StatusCard from "@/components/typhoon/StatusCard";
 import TrendTimeline from "@/components/typhoon/TrendTimeline";
 import OfficialInfo from "@/components/typhoon/OfficialInfo";
 import { AlertTriangle, RefreshCw, Clock } from "lucide-react";
+import ThemeToggle from "@/components/ui/ThemeToggle";
 
 const TyphoonMap = dynamic(() => import("@/components/typhoon/TyphoonMap"), {
   ssr: false,
@@ -345,6 +346,8 @@ export default function TyphoonPage() {
           </div>
         </div>
       </main>
+
+      <ThemeToggle />
 
       {/* ============ FOOTER / DISCLAIMER ============ */}
       <footer
