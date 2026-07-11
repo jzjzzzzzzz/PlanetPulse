@@ -7,6 +7,7 @@ import { CATEGORY_INFO, knotsToKmh } from "@/lib/typhoon/types";
 import { AlertTriangle, RefreshCw, Clock, Wind, Gauge, Compass, MoveRight, Circle, TrendingDown, Shield, ExternalLink } from "lucide-react";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 import { useTheme } from "@/lib/theme/useTheme";
+import StatusCard from "@/components/typhoon/StatusCard";
 
 const TyphoonMap = dynamic(() => import("@/components/typhoon/TyphoonMap"), { ssr: false });
 
@@ -211,55 +212,7 @@ export default function TyphoonEnPage() {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, padding: "12px 16px", maxWidth: 1200, margin: "0 auto", width: "100%", boxSizing: "border-box" }} className="typhoon-en-panels">
           {/* Status Card */}
           <div className="panel-card" style={{ gridColumn: "1 / -1" }}>
-            {data ? (
-              <>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
-                  <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: "var(--tp-text, #e0e6f0)" }}>
-                    {selectedPoint ? (selectedPoint.isForecast ? `+${selectedPoint.hoursAhead}h Forecast` : "Current Position") : "Real-Time Status"}
-                  </h2>
-                  <span style={{ fontSize: 11, color: "var(--tp-text-muted, #6B7B95)" }}>
-                    {(() => {
-                      const t = selectedPoint?.time ?? data.current.validTime;
-                      return new Date(t).toLocaleString("en", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", timeZoneName: "short" });
-                    })()}
-                  </span>
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))", gap: 8 }}>
-                  <MetricCard icon={<Gauge size={16} />} label="Pressure" value={`${selectedPoint?.pressure ?? data.current.pressure}`} sub="hPa" accent="#3BD5FF" />
-                  <MetricCard icon={<Wind size={16} />} label="Wind Speed" value={`${selectedPoint?.windSpeed ?? data.current.windSpeed}`} sub={`kt | ${knotsToKmh(selectedPoint?.windSpeed ?? data.current.windSpeed)} km/h`} accent="#F5D547" />
-                  <MetricCard icon={<Wind size={16} />} label="Gust" value={`${data.current.gustSpeed ?? "---"}`} sub="kt" accent="#F08C3E" />
-                  {!selectedPoint && data.current.direction != null && (
-                    <>
-                      <MetricCard icon={<Compass size={16} />} label="Direction" value={`${data.current.direction}°`} sub={data.current.direction < 90 ? "NE" : data.current.direction < 180 ? "SE" : data.current.direction < 270 ? "SW" : "NW"} accent="#6B9BD2" />
-                      <MetricCard icon={<MoveRight size={16} />} label="Speed" value={`${data.current.speed ?? "---"}`} sub="km/h" accent="#8D9AAF" />
-                    </>
-                  )}
-                  {!selectedPoint && data.windRadii.stormRadius && (
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "10px 8px", background: "rgba(229, 62, 62, 0.05)", borderRadius: 8, border: "1px solid rgba(229, 62, 62, 0.15)" }}>
-                      <Circle size={16} style={{ color: "#E53E3E", marginBottom: 4 }} />
-                      <span style={{ fontSize: 10, color: "var(--tp-text-muted, #6B7B95)", marginBottom: 2 }}>Storm Radius</span>
-                      <span style={{ fontSize: 18, fontWeight: 700, fontFamily: "var(--font-jetbrains-mono), monospace", color: "#E53E3E", lineHeight: 1.2 }}>{data.windRadii.stormRadius}</span>
-                      <span style={{ fontSize: 10, color: "var(--tp-text-muted, #6B7B95)", marginTop: 1 }}>km</span>
-                    </div>
-                  )}
-                  {!selectedPoint && data.windRadii.galeRadius && (
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "10px 8px", background: "rgba(240, 140, 62, 0.05)", borderRadius: 8, border: "1px solid rgba(240, 140, 62, 0.15)" }}>
-                      <Circle size={16} style={{ color: "#F08C3E", marginBottom: 4 }} />
-                      <span style={{ fontSize: 10, color: "var(--tp-text-muted, #6B7B95)", marginBottom: 2 }}>Gale Radius</span>
-                      <span style={{ fontSize: 18, fontWeight: 700, fontFamily: "var(--font-jetbrains-mono), monospace", color: "#F08C3E", lineHeight: 1.2 }}>{data.windRadii.galeRadius}</span>
-                      <span style={{ fontSize: 10, color: "var(--tp-text-muted, #6B7B95)", marginTop: 1 }}>km</span>
-                    </div>
-                  )}
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "10px 8px", background: "var(--tp-card-bg, rgba(255,255,255,0.03))", borderRadius: 8, border: "1px solid rgba(255,255,255,0.05)" }}>
-                    <span style={{ fontSize: 10, color: "var(--tp-text-muted, #6B7B95)", marginBottom: 4 }}>Position</span>
-                    <span style={{ fontSize: 13, fontWeight: 600, fontFamily: "var(--font-jetbrains-mono), monospace", color: "var(--tp-text, #e0e6f0)" }}>{(selectedPoint?.lat ?? data.current.lat).toFixed(1)}&deg;N</span>
-                    <span style={{ fontSize: 13, fontWeight: 600, fontFamily: "var(--font-jetbrains-mono), monospace", color: "var(--tp-text, #e0e6f0)" }}>{(selectedPoint?.lng ?? data.current.lng).toFixed(1)}&deg;E</span>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div style={{ textAlign: "center", color: "var(--tp-text-muted, #6B7B95)", padding: 16 }}>No data available</div>
-            )}
+            <StatusCard data={data} selectedPoint={selectedPoint} lang="en" />
           </div>
 
           {/* Trend Timeline */}

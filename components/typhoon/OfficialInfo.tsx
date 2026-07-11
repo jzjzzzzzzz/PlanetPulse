@@ -1,7 +1,15 @@
 "use client";
 
 import React from "react";
-import { Shield, ExternalLink, AlertTriangle } from "lucide-react";
+import { Shield, ExternalLink, AlertTriangle, Newspaper } from "lucide-react";
+
+const OFFICIAL_BULLETINS = [
+  {
+    title: "国家防总研究部署台风防御工作",
+    url: "https://www.mem.gov.cn/",
+    source: "应急管理部",
+  },
+];
 
 const OFFICIAL_SOURCES = [
   {
@@ -58,6 +66,23 @@ export default function OfficialInfo() {
         >
           官方信息与防灾提示
         </span>
+      </div>
+
+      {/* Official bulletins */}
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: "#E53E3E", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+          <Newspaper size={10} /> 已核实官方通报
+        </div>
+        {OFFICIAL_BULLETINS.map((b, i) => (
+          <a key={i} href={b.url} target="_blank" rel="noopener noreferrer"
+            style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 10px", borderRadius: 6, background: "rgba(229, 62, 62, 0.06)", border: "1px solid rgba(229, 62, 62, 0.15)", textDecoration: "none", color: "#e0e6f0", marginBottom: 6 }}>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "#E53E3E" }}>{b.title}</div>
+              <div style={{ fontSize: 10, color: "#6B7B95", marginTop: 1 }}>{b.source}</div>
+            </div>
+            <ExternalLink size={12} style={{ color: "#E53E3E", flexShrink: 0 }} />
+          </a>
+        ))}
       </div>
 
       {/* Official sources */}

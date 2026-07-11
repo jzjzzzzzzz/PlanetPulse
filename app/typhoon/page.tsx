@@ -330,7 +330,7 @@ export default function TyphoonPage() {
         >
           {/* Status Card */}
           <div className="panel-card" style={{ gridColumn: "1 / -1" }}>
-            <StatusCard data={data} selectedPoint={selectedPoint} />
+            <StatusCard data={data} selectedPoint={selectedPoint} lang="zh" />
           </div>
 
           {/* Trend Timeline */}

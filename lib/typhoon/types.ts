@@ -170,3 +170,47 @@ export function knotsToKmh(knots: number): number {
 export function knotsToMs(knots: number): number {
   return Math.round(knots * 0.5144);
 }
+
+// ============================================================
+// Wind force level (Chinese typhoon scale 0–17)
+// Based on 10-min average wind speed in m/s
+// ============================================================
+
+export type WindLevel = {
+  level: number;
+  label: string;
+  labelEn: string;
+};
+
+export function getWindLevel(windMs: number): WindLevel {
+  if (windMs < 0.3) return { level: 0, label: "无风", labelEn: "Calm" };
+  if (windMs < 1.6) return { level: 1, label: "软风", labelEn: "Light Air" };
+  if (windMs < 3.4) return { level: 2, label: "轻风", labelEn: "Light Breeze" };
+  if (windMs < 5.5) return { level: 3, label: "微风", labelEn: "Gentle Breeze" };
+  if (windMs < 8.0) return { level: 4, label: "和风", labelEn: "Moderate Breeze" };
+  if (windMs < 10.8) return { level: 5, label: "劲风", labelEn: "Fresh Breeze" };
+  if (windMs < 13.9) return { level: 6, label: "强风", labelEn: "Strong Breeze" };
+  if (windMs < 17.2) return { level: 7, label: "疾风", labelEn: "Near Gale" };
+  if (windMs < 20.8) return { level: 8, label: "大风", labelEn: "Gale" };
+  if (windMs < 24.5) return { level: 9, label: "烈风", labelEn: "Strong Gale" };
+  if (windMs < 28.5) return { level: 10, label: "狂风", labelEn: "Storm" };
+  if (windMs < 32.7) return { level: 11, label: "暴风", labelEn: "Violent Storm" };
+  if (windMs < 37.0) return { level: 12, label: "台风", labelEn: "Typhoon" };
+  if (windMs < 41.5) return { level: 13, label: "台风", labelEn: "Typhoon" };
+  if (windMs < 46.2) return { level: 14, label: "强台风", labelEn: "Severe Typhoon" };
+  if (windMs < 51.0) return { level: 15, label: "强台风", labelEn: "Severe Typhoon" };
+  if (windMs < 56.1) return { level: 16, label: "超强台风", labelEn: "Super Typhoon" };
+  return { level: 17, label: "超强台风", labelEn: "Super Typhoon" };
+}
+
+// ============================================================
+// Compass direction
+// ============================================================
+
+const COMPASS_ZH = ["北", "北北东", "东北", "东东北", "东", "东东南", "东南", "南南东", "南", "南南西", "西南", "西西南", "西", "西西北", "西北", "北北西"];
+const COMPASS_EN = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+
+export function degreesToCompass(deg: number): { zh: string; en: string } {
+  const i = Math.round(deg / 22.5) % 16;
+  return { zh: COMPASS_ZH[i], en: COMPASS_EN[i] };
+}
