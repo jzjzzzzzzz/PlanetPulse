@@ -7,9 +7,9 @@ import { CATEGORY_INFO, knotsToKmh } from "@/lib/typhoon/types";
 import StatusCard from "@/components/typhoon/StatusCard";
 import TrendTimeline from "@/components/typhoon/TrendTimeline";
 import OfficialInfo from "@/components/typhoon/OfficialInfo";
+import PredictionPanel from "@/components/typhoon/PredictionPanel";
 import { AlertTriangle, RefreshCw, Clock } from "lucide-react";
 import ThemeToggle from "@/components/ui/ThemeToggle";
-import { useLanguage } from "@/lib/i18n/context";
 import { useTheme } from "@/lib/theme/useTheme";
 
 const TyphoonMap = dynamic(() => import("@/components/typhoon/TyphoonMap"), {
@@ -21,7 +21,6 @@ const REFRESH_INTERVAL = 30 * 60; // 30 minutes
 export default function TyphoonPage() {
   const [data, setData] = useState<TyphoonData | null>(null);
   const { dark, colors } = useTheme();
-  const { lang } = useLanguage();
   const [error, setError] = useState<string | null>(null);
   const [stale, setStale] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -332,7 +331,7 @@ export default function TyphoonPage() {
         >
           {/* Status Card */}
           <div className="panel-card" style={{ gridColumn: "1 / -1" }}>
-            <StatusCard data={data} selectedPoint={selectedPoint} lang={lang} />
+            <StatusCard data={data} selectedPoint={selectedPoint} />
           </div>
 
           {/* Trend Timeline */}
@@ -341,8 +340,13 @@ export default function TyphoonPage() {
               data={data}
               onPointSelect={handlePointSelect}
               selectedPoint={selectedPoint}
-              lang={lang}
+             
             />
+          </div>
+
+          {/* ECMWF Prediction */}
+          <div className="panel-card">
+            <PredictionPanel data={data} />
           </div>
 
           {/* Official Info */}

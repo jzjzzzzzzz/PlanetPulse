@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { Suspense } from "react";
-import ClientLayout from "@/components/layout/ClientLayout";
 import "./globals.css";
 
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"], display: "swap" });
@@ -19,7 +18,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable} dark h-full antialiased`}>
       <body className="h-full overflow-hidden">
         <Suspense fallback={<div style={{ position: "fixed", inset: 0, background: "#05070D" }} />}>
-          <ClientLayout>{children}</ClientLayout>
+          {children}
         </Suspense>
       </body>
     </html>

@@ -1,7 +1,6 @@
 "use client";
 import React from "react";
-import { RefreshCw, Info, CloudRain, Globe } from "lucide-react";
-import { useLanguage } from "@/lib/i18n/context";
+import { RefreshCw, Info, CloudRain } from "lucide-react";
 
 type TopStatusBarProps = {
   localTime: string;
@@ -17,7 +16,6 @@ type TopStatusBarProps = {
 export default function TopStatusBar({
   localTime, dataStatus, isFallbackData, eventsCount, lastUpdated, refreshIn, onRefresh, onOpenInfo,
 }: TopStatusBarProps) {
-  const { lang, setLang } = useLanguage();
   const isLive = dataStatus === "live";
 
   return (
@@ -136,17 +134,6 @@ export default function TopStatusBar({
           <CloudRain size={13} strokeWidth={1.5} />
           <span className="hidden sm:inline">TYPHOON</span>
         </a>
-
-        {/* Language toggle */}
-        <button
-          onClick={() => setLang(lang === "zh" ? "en" : "zh")}
-          className="flex items-center gap-1 px-2 py-1 rounded-md transition-colors duration-200 hover:brightness-125"
-          style={{ color: "var(--color-text-muted)", background: "var(--color-bg-glass)", border: "1px solid var(--color-border)", fontSize: 10, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}
-          title={lang === "zh" ? "Switch to English" : "切换到中文"}
-        >
-          <Globe size={12} strokeWidth={1.5} />
-          <span className="hidden sm:inline">{lang === "zh" ? "EN" : "中文"}</span>
-        </button>
 
         {/* Refresh button */}
         <button
